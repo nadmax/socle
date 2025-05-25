@@ -1,3 +1,5 @@
+![Build](https://github.com/nadmax/modulon/actions/workflows/ci.yaml/badge.svg)
+
 # 🤖 Modulon
 A modern Discord bot built with [TypeScript](https://www.typescriptlang.org/) and [discord.js](https://discord.js.org/), following the best practices from the [discord.js guide](https://discordjs.guide/).  
 
