@@ -1,7 +1,7 @@
 import { ChatInputCommandInteraction, GuildMember, NewsChannel, SlashCommandBuilder, TextChannel, ThreadChannel } from 'discord.js';
 import { Command } from '../types/Command.js';
 
-export const command: Command = {
+export const clear: Command = {
     data: new SlashCommandBuilder()
         .setName('clear')
         .setDescription('Deletes a given number of messages from the channel.')

@@ -1,4 +1,6 @@
-import { command as ping } from './commands/ping.js';
+import { clear } from './commands/clear.js';
+import { ping } from './commands/ping.js';
+import { Command } from './types/Command.js';
 
 import { Client, Collection, Events, GatewayIntentBits } from 'discord.js';
 import dotenv from 'dotenv';
@@ -17,9 +19,10 @@ const client = new Client({
         GatewayIntentBits.GuildMembers,
     ]
 });
-const commands = new Collection<string, typeof ping>();
+const commands = new Collection<string, Command>();
 
 commands.set(ping.data.name, ping);
+commands.set(clear.data.name, clear);
 client.on(Events.InteractionCreate, async (interaction) => {
     if (!interaction.isChatInputCommand()) {
         return;
