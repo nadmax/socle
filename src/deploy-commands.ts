@@ -1,10 +1,14 @@
 import { REST, Routes } from 'discord.js';
 import dotenv from 'dotenv';
 import { command as ping } from './commands/ping.js';
+import { command as clear } from './commands/clear.js';
 
 dotenv.config();
 
-const commands = [ping.data.toJSON()];
+const commands = [
+    ping.data.toJSON(),
+    clear.data.toJSON()
+];
 const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN!);
 
 (async () => {
