@@ -1,4 +1,4 @@
-import { SlashCommandBuilder } from 'discord.js';
+import { ChatInputCommandInteraction, SlashCommandBuilder } from 'discord.js';
 import { Command } from '../types/Command.js';
 
 export const command: Command = {
@@ -6,13 +6,13 @@ export const command: Command = {
         .setName('ping')
         .setDescription('Replies with bot latency and API latency.'),
 
-    async execute(interaction) {
+    async execute(interaction: ChatInputCommandInteraction) {
         const sent = await interaction.reply({
             content: 'Pinging...',
             withResponse: true,
         });
 
-        const roundTrip = Date.now() - interaction.createdTimestamp;
+        const roundTrip = Date.now() - sent.interaction.createdTimestamp;
         const apiLatency = interaction.client.ws.ping;
 
         await interaction.editReply(
