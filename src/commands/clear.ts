@@ -1,5 +1,7 @@
-import { ChatInputCommandInteraction, GuildMember, NewsChannel, SlashCommandBuilder, TextChannel, ThreadChannel } from 'discord.js';
 import { Command } from '../types/Command.js';
+import { deleteMessagesConcurrently } from '../utils/deleteMessages.js';
+
+import { ChatInputCommandInteraction, GuildMember, NewsChannel, SlashCommandBuilder, TextChannel, ThreadChannel } from 'discord.js';
 
 export const clear: Command = {
     data: new SlashCommandBuilder()
@@ -54,8 +56,15 @@ export const clear: Command = {
         await interaction.deferReply({ ephemeral: true });
 
         try {
-            const messages = await channel.bulkDelete(amount, true);
-            await interaction.editReply(`✅ ${messages.size} message(s) ont été supprimés avec succès.`);
+            const fetchedMessages = await channel.messages.fetch({ limit: 100 });
+            const deletedMessages = await channel.bulkDelete(fetchedMessages, true);
+            const notDeleted = fetchedMessages.filter(
+                msg => !deletedMessages.has(msg.id)
+            );
+
+            await deleteMessagesConcurrently(notDeleted.values(), 3, 300);
+
+            await interaction.editReply(`✅ ${fetchedMessages.size} message(s) ont été supprimés avec succès.`);
         } catch (error) {
             console.error(error);
             await interaction.editReply('❌ Échec de la suppression des messages. Assurez-vous que les messages datent de moins de 14 jours.');
