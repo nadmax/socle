@@ -2,12 +2,14 @@ import { REST, Routes } from 'discord.js';
 import dotenv from 'dotenv';
 import { ping } from './commands/ping.js';
 import { clear } from './commands/clear.js';
+import { help } from './commands/help.js';
 
 dotenv.config();
 
 const commands = [
     ping,
-    clear
+    clear,
+    help
 ].map(cmd => cmd.data.toJSON());
 const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN!);
 
