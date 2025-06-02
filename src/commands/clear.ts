@@ -1,7 +1,7 @@
 import { Command } from '../types/Command.js';
 import { deleteMessagesConcurrently } from '../utils/deleteMessages.js';
 
-import { ChatInputCommandInteraction, GuildMember, NewsChannel, SlashCommandBuilder, TextChannel, ThreadChannel } from 'discord.js';
+import { ChatInputCommandInteraction, GuildMember, MessageFlags, NewsChannel, SlashCommandBuilder, TextChannel, ThreadChannel } from 'discord.js';
 
 export const clear: Command = {
     data: new SlashCommandBuilder()
@@ -22,7 +22,7 @@ export const clear: Command = {
         if (!role) {
             await interaction.reply({
                 content: '⚠️ Le rôle "Owner" est introuvable sur le serveur.',
-                ephemeral: true,
+                flags: MessageFlags.Ephemeral
             });
             return;
         }
@@ -30,7 +30,7 @@ export const clear: Command = {
         if (!member.roles.cache.has(role.id)) {
             await interaction.reply({
                 content: `❌ Tu n'as pas les droits pour exécuter cette commande.`,
-                ephemeral: true,
+                flags: MessageFlags.Ephemeral
             });
             return;
         }
@@ -39,7 +39,7 @@ export const clear: Command = {
         if (amount < 1 || amount > 100) {
             await interaction.reply({
                 content: '❌ Veuillez choisir un nombre entre 1 et 100.',
-                ephemeral: true,
+                flags: MessageFlags.Ephemeral
             });
             return;
         }
@@ -48,12 +48,12 @@ export const clear: Command = {
         if (!channel ||!(channel instanceof TextChannel || channel instanceof NewsChannel || channel instanceof ThreadChannel)) {
             await interaction.reply({
                 content: '❌ Cette commande ne peut être utilisée que dans un salon textuel.',
-                ephemeral: true,
+                flags: MessageFlags.Ephemeral
             });
             return;
         }
 
-        await interaction.deferReply({ ephemeral: true });
+        await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
         try {
             const fetchedMessages = await channel.messages.fetch({ limit: 100 });
