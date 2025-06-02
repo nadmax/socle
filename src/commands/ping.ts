@@ -9,7 +9,7 @@ export const ping: Command = {
     async execute(interaction: ChatInputCommandInteraction) {
         const sent = await interaction.reply({
             content: 'Pinging...',
-            withResponse: true,
+            withResponse: true
         });
 
         const roundTrip = Date.now() - sent.interaction.createdTimestamp;
