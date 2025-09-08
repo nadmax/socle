@@ -1,0 +1,61 @@
+name: CD
+
+on:
+  push:
+    branches:
+      - master
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Setup Buildah
+        run: |
+          sudo apt update
+          sudo apt install -y buildah podman
+
+      - name: Extract version information
+        id: version
+        run: |
+          GIT_TAG=$(git describe --tags --exact-match 2>/dev/null || echo "")
+          VERSION=$(grep -o '"version":\s*"[^"]*"' package.json | cut -d'"' -f4 || echo "")
+          GIT_COMMIT=$(git rev-parse --short HEAD)
+
+          echo "git_tag=$GIT_TAG" >> $GITHUB_OUTPUT
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "git_commit=$GIT_COMMIT" >> $GITHUB_OUTPUT
+
+          echo "Version info:"
+          echo "  Git Tag: $GIT_TAG"
+          echo "  Package Version: $VERSION"
+          echo "  Git Commit: $GIT_COMMIT"
+
+      - name: Log in to Container Registry
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | podman login ${{ env.REGISTRY }} --username ${{ github.actor }} --password-stdin
+
+      - name: Build and push with Buildah
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          chmod +x scripts/build-and-push.sh
+          ./scripts/build-and-push.sh
+
+      - name: Sync with ArgoCD
+        run: |
+          curl -X POST "https://your-argocd-server/api/v1/applications/socle/sync" \
+          -H "Authorization: Bearer ${{ secrets.ARGOCD_TOKEN }}"
+          echo "New image pushed, ArgoCD will sync automatically"

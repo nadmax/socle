@@ -1,4 +1,4 @@
-![CI](https://github.com/nadmax/modulon/actions/workflows/ci.yaml/badge.svg)
+![CI](https://github.com/nadmax/socle/actions/workflows/ci.yml/badge.svg) ![CD](https://github.com/nadmax/socle/actions/workflows/cd.yml/badge.svg)
 
 # Socle
 
@@ -23,6 +23,6 @@ A modern Discord bot built with [TypeScript](https://www.typescriptlang.org/) an
 
 One command is needed to start the bot:
 
-```bash
+```sh
 docker compose up -d
 ```
