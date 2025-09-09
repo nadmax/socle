@@ -69,12 +69,6 @@ log "Building image with tags: ${TAGS[*]}"
 log "Logging in to ${REGISTRY}..."
 echo "$GITHUB_TOKEN" | podman login "$REGISTRY" --username "$(whoami)" --password-stdin
 
-for f in package.json package-lock.json tsconfig.json src/scripts/entrypoint.sh; do
-    if [[ ! -f "${BUILD_CONTEXT}/$f" ]]; then
-        error "Missing required file: ${BUILD_CONTEXT}/$f"
-    fi
-done
-
 log "Creating build container..."
 CONTAINER=$(buildah bud -f "${BUILD_CONTEXT}/Dockerfile" -t "$IMAGE_NAME" "${BUILD_CONTEXT}")
 

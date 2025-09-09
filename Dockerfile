@@ -1,3 +1,2 @@
-FROM node:22-alpine AS builder
-WORKDIR /app
+FROM scratch
 RUN echo "hello world"

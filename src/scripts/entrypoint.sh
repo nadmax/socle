@@ -1,4 +1,4 @@
-#!/usr/bin/env sh
+#!/bin/bash
 set -e
 
 node build/deploy-commands.js
