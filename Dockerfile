@@ -9,7 +9,7 @@ FROM node:22-alpine
 WORKDIR /app
 
 COPY package*.json ./
-RUN npm ci --production && \
+RUN npm ci --omit=dev && \
     npm cache clean --force && \
     rm -rf /root/.npm /tmp/* /var/cache/apk/* /usr/share/man /usr/share/doc && \
     find node_modules -type f -name "*.md" -delete && \

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -e
+set -ex
 
 REGISTRY="ghcr.io"
 IMAGE_NAME="nadmax/socle"
