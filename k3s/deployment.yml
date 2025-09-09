@@ -28,7 +28,7 @@ spec:
           effect: "NoSchedule"
       containers:
         - name: socle
-          image: ghcr.io/nadmax/socle:v0.2.0
+          image: ghcr.io/nadmax/socle:v0.3.0
           imagePullPolicy: Always
           env:
             - name: DISCORD_TOKEN
