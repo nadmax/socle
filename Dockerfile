@@ -1,2 +1,2 @@
-FROM scratch
+FROM alpine:latest
 RUN echo "hello world"
