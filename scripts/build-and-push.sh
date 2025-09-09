@@ -48,11 +48,6 @@ if [[ "$GIT_BRANCH" == "master" ]]; then
     TAGS+=("${REGISTRY}/${IMAGE_NAME}:latest")
 fi
 
-if [[ "$GIT_BRANCH" != "master" && -z "$GIT_TAG" ]]; then
-    BRANCH_TAG=$(echo "$GIT_BRANCH" | sed 's/[^a-zA-Z0-9._-]/-/g')
-    TAGS+=("${REGISTRY}/${IMAGE_NAME}:${BRANCH_TAG}")
-fi
-
 log "Building image with tags: ${TAGS[*]}"
 
 log "Logging in to ${REGISTRY}..."
