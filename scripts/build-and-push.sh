@@ -29,10 +29,7 @@ command -v buildah >/dev/null || error "buildah is not installed"
 command -v podman >/dev/null || error "podman is not installed"
 [[ -n "$GITHUB_TOKEN" ]] || error "GITHUB_TOKEN is required"
 
-GIT_BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "unknown")
-TIMESTAMP=$(date +%Y%m%d-%H%M%S)
 VERSION=$(jq -r '.version' package.json)
-
 TAGS=()
 
 if [[ -n "$VERSION" ]]; then
@@ -61,8 +58,10 @@ IMAGE_ID=$(
         --label "org.opencontainers.image.description=Socle Discord Bot" \
         --label "org.opencontainers.image.revision=${VERSION}" \
         --label "org.opencontainers.image.created=$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+        --quiet \
         "${BUILD_CONTEXT}"
 )
+IMAGE_ID=$(echo "$IMAGE_ID" | tr -d "'[:space:]")
 
 for tag in "${TAGS[@]:1}"; do
     log "Tagging image as $tag"
