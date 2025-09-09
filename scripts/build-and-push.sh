@@ -59,7 +59,7 @@ IMAGE_ID=$(
         --tag "${TAGS[0]}" \
         --label "org.opencontainers.image.source=https://github.com/nadmax/socle" \
         --label "org.opencontainers.image.description=Socle Discord Bot" \
-        --label "org.opencontainers.image.revision=${GIT_TAG}" \
+        --label "org.opencontainers.image.revision=${VERSION}" \
         --label "org.opencontainers.image.created=$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
         "${BUILD_CONTEXT}"
 )
