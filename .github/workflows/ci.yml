@@ -4,6 +4,14 @@ on:
   pull_request:
 
 jobs:
+  security:
+    name: Security
+    uses: ./.github/workflows/security.yml
+    permissions:
+      contents: read
+      security-events: write
+      actions: read
+
   build:
     runs-on: ubuntu-latest
     steps:
