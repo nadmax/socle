@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - master
-  pull_request:
 
 env:
   REGISTRY: ghcr.io
@@ -54,9 +53,3 @@ jobs:
         run: |
           chmod +x scripts/build-and-push.sh
           ./scripts/build-and-push.sh
-
-      - name: Sync with ArgoCD
-        run: |
-          curl -X POST "https://your-argocd-server/api/v1/applications/socle/sync" \
-          -H "Authorization: Bearer ${{ secrets.ARGOCD_TOKEN }}"
-          echo "New image pushed, ArgoCD will sync automatically"
