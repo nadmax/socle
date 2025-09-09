@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -ex
+set -exo pipefail
 
 REGISTRY="ghcr.io"
 IMAGE_NAME="nadmax/socle"
