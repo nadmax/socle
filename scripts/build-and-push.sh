@@ -1,11 +1,11 @@
-#!/bin/sh
+#!/bin/bash
 
 set -e
 
 REGISTRY="ghcr.io"
 IMAGE_NAME="nadmax/socle"
 GITHUB_TOKEN="${GITHUB_TOKEN:-}"
-BUILD_CONTEXT="${BUILD_CONTEXT:-./}"
+BUILD_CONTEXT="${BUILD_CONTEXT:-.}"
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -25,11 +25,11 @@ error() {
     exit 1
 }
 
-if ! command -v buildah &> /dev/null; then
+if ! command -v buildah &>/dev/null; then
     error "buildah is not installed. Please install it first."
 fi
 
-if ! command -v podman &> /dev/null; then
+if ! command -v podman &>/dev/null; then
     error "podman is not installed. Please install it first."
 fi
 
@@ -70,7 +70,7 @@ log "Logging in to ${REGISTRY}..."
 echo "$GITHUB_TOKEN" | podman login "$REGISTRY" --username "$(whoami)" --password-stdin
 
 log "Creating build container..."
-CONTAINER=$(buildah from --file "${BUILD_CONTEXT}/Dockerfile" "${BUILD_CONTEXT}")
+CONTAINER=$(buildah bud -f "${BUILD_CONTEXT}/Dockerfile" -t "$IMAGE_NAME" "${BUILD_CONTEXT}")
 
 buildah config --label "org.opencontainers.image.source=https://github.com/nadmax/socle" "$CONTAINER"
 buildah config --label "org.opencontainers.image.description=Socle Discord Bot" "$CONTAINER"
