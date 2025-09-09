@@ -29,7 +29,6 @@ command -v buildah >/dev/null || error "buildah is not installed"
 command -v podman >/dev/null || error "podman is not installed"
 [[ -n "$GITHUB_TOKEN" ]] || error "GITHUB_TOKEN is required"
 
-GIT_COMMIT=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
 GIT_BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "unknown")
 GIT_TAG=$(git describe --tags --exact-match 2>/dev/null || echo "")
 TIMESTAMP=$(date +%Y%m%d-%H%M%S)
@@ -65,7 +64,7 @@ IMAGE_ID=$(
         --tag "${TAGS[0]}" \
         --label "org.opencontainers.image.source=https://github.com/nadmax/socle" \
         --label "org.opencontainers.image.description=Socle Discord Bot" \
-        --label "org.opencontainers.image.revision=${GIT_COMMIT}" \
+        --label "org.opencontainers.image.revision=${GIT_TAG}" \
         --label "org.opencontainers.image.created=$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
         "${BUILD_CONTEXT}"
 )
