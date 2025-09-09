@@ -14,7 +14,7 @@ spec:
   source:
     repoURL: https://github.com/nadmax/socle
     targetRevision: HEAD
-    path: apps/socle
+    path: k3s
   destination:
     server: https://kubernetes.default.svc
     namespace: socle
