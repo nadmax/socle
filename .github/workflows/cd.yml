@@ -22,7 +22,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Setup Buildah
+      - name: Install Buildah
         run: |
           sudo apt update
           sudo apt install -y buildah podman
