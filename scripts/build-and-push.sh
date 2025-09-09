@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 set -e
 
@@ -25,11 +25,11 @@ error() {
     exit 1
 }
 
-if ! command -v buildah &> /dev/null; then
+if ! command -v buildah &>/dev/null; then
     error "buildah is not installed. Please install it first."
 fi
 
-if ! command -v podman &> /dev/null; then
+if ! command -v podman &>/dev/null; then
     error "podman is not installed. Please install it first."
 fi
 
