@@ -1,0 +1,26 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: socle
+  namespace: argocd
+  annotations:
+    argocd-image-updater.argoproj.io/image-list: socle=ghcr.io/nadmax/socle
+    argocd-image-updater.argoproj.io/socle.update-strategy: semver
+    argocd-image-updater.argoproj.io/socle.allow-tags: regexp:^v[0-9]+\.[0-9]+\.[0-9]+$
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/nadmax/socle
+    targetRevision: HEAD
+    path: apps/socle
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: socle
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
