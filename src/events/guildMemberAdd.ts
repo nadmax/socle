@@ -21,12 +21,12 @@ export const event: Event = {
 
         const welcomeEmbed = new EmbedBuilder()
             .setTitle(`👋 Welcome ${member.user.username}!`)
-            .setDescription('Click on the button below to join the Socle.')
+            .setDescription('Click on the green button below to join Le Socle.')
             .setColor(0x00bfff);
 
         const button = new ButtonBuilder()
             .setCustomId(`welcome-role-${member.id}`)
-            .setLabel('Join the Socle.')
+            .setLabel('Join Le Socle.')
             .setStyle(ButtonStyle.Success);
 
         const row = new ActionRowBuilder<ButtonBuilder>().addComponents(button);
