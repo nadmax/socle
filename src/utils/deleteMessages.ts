@@ -21,8 +21,8 @@ async function deleteMessageWithRetry(msg: Message, delayMs: number) {
 }
 
 export async function deleteMessagesConcurrently(
-    messages: Iterable<Message>, 
-    concurrency = 3, 
+    messages: Iterable<Message>,
+    concurrency = 3,
     delayMs = 300
 ) {
     const queue = Array.from(messages);

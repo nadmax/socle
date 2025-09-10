@@ -17,9 +17,9 @@ export const clear: Command = {
     async execute(interaction: ChatInputCommandInteraction) {
         const amount = interaction.options.getInteger('amount')!;
         const member = interaction.member as GuildMember;
-        const roleId = process.env.MEMBER_ROLE_ID!;
-        const role = interaction.guild?.roles.cache.get(roleId);
-        if (!role) {
+        const adminRoleId = process.env.ADMIN_ROLE_ID!;
+        const adminRole = interaction.guild?.roles.cache.get(adminRoleId);
+        if (!adminRole) {
             await interaction.reply({
                 content: '⚠️"Admin" role cannot be found.',
                 flags: MessageFlags.Ephemeral
@@ -27,7 +27,7 @@ export const clear: Command = {
             return;
         }
 
-        if (!member.roles.cache.has(role.id)) {
+        if (!member.roles.cache.has(adminRole.id)) {
             await interaction.reply({
                 content: `❌ You do not have permission to execute this command.`,
                 flags: MessageFlags.Ephemeral
