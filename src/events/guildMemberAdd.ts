@@ -1,9 +1,9 @@
-import { 
-    type GuildMember, 
-    EmbedBuilder, 
-    ActionRowBuilder, 
-    ButtonBuilder, 
-    ButtonStyle, 
+import {
+    type GuildMember,
+    EmbedBuilder,
+    ActionRowBuilder,
+    ButtonBuilder,
+    ButtonStyle,
     Events
 } from 'discord.js';
 import { Event } from '../types/Event.js';
@@ -20,14 +20,14 @@ export const event: Event = {
         }
 
         const welcomeEmbed = new EmbedBuilder()
-        .setTitle(`👋 Bienvenue ${member.user.username}!`)
-        .setDescription('Clique sur le bouton ci-dessous pour accéder au serveur.')
-        .setColor(0x00bfff);
+            .setTitle(`👋 Welcome ${member.user.username}!`)
+            .setDescription('Click on the button below to join the Socle.')
+            .setColor(0x00bfff);
 
         const button = new ButtonBuilder()
-        .setCustomId(`welcome-role-${member.id}`)
-        .setLabel('Accéder au serveur')
-        .setStyle(ButtonStyle.Success);
+            .setCustomId(`welcome-role-${member.id}`)
+            .setLabel('Join the Socle.')
+            .setStyle(ButtonStyle.Success);
 
         const row = new ActionRowBuilder<ButtonBuilder>().addComponents(button);
 

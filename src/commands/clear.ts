@@ -21,7 +21,7 @@ export const clear: Command = {
         const role = interaction.guild?.roles.cache.get(roleId);
         if (!role) {
             await interaction.reply({
-                content: '⚠️ Le rôle "Owner" est introuvable sur le serveur.',
+                content: '⚠️"Admin" role cannot be found.',
                 flags: MessageFlags.Ephemeral
             });
             return;
@@ -29,7 +29,7 @@ export const clear: Command = {
 
         if (!member.roles.cache.has(role.id)) {
             await interaction.reply({
-                content: `❌ Tu n'as pas les droits pour exécuter cette commande.`,
+                content: `❌ You do not have permission to execute this command.`,
                 flags: MessageFlags.Ephemeral
             });
             return;
@@ -38,16 +38,16 @@ export const clear: Command = {
 
         if (amount < 1 || amount > 100) {
             await interaction.reply({
-                content: '❌ Veuillez choisir un nombre entre 1 et 100.',
+                content: '❌ Please choose a number between 1 and 100.',
                 flags: MessageFlags.Ephemeral
             });
             return;
         }
 
         const channel = interaction.channel;
-        if (!channel ||!(channel instanceof TextChannel || channel instanceof NewsChannel || channel instanceof ThreadChannel)) {
+        if (!channel || !(channel instanceof TextChannel || channel instanceof NewsChannel || channel instanceof ThreadChannel)) {
             await interaction.reply({
-                content: '❌ Cette commande ne peut être utilisée que dans un salon textuel.',
+                content: '❌ This command can only be used in a text channel.',
                 flags: MessageFlags.Ephemeral
             });
             return;
@@ -64,10 +64,13 @@ export const clear: Command = {
 
             await deleteMessagesConcurrently(notDeleted.values(), 3, 300);
 
-            await interaction.editReply(`✅ ${fetchedMessages.size} message(s) ont été supprimés avec succès.`);
+            if (fetchedMessages.size > 1)
+                await interaction.editReply(`✅ ${fetchedMessages.size} messages were successfully deleted.`);
+            else
+                await interaction.editReply(`✅ 1 message was successfully deleted.`);
         } catch (error) {
             console.error(error);
-            await interaction.editReply('❌ Échec de la suppression des messages. Assurez-vous que les messages datent de moins de 14 jours.');
+            await interaction.editReply('❌ Failed to delete messages. Make sure messages are less than 14 days old.');
         }
     },
 }

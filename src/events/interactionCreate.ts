@@ -1,7 +1,7 @@
 import {
-  Events,
-  type Interaction,
-  GuildMember,
+    Events,
+    type Interaction,
+    GuildMember,
 } from 'discord.js';
 import { Event } from '../types/Event.js';
 
@@ -33,21 +33,21 @@ export const event: Event = {
 
         if (!role) {
             return interaction.reply({
-                content: '⚠️ Le rôle "Membre" est introuvable sur le serveur.',
+                content: '⚠️ Le rôle "Member" est introuvable sur le serveur.',
                 ephemeral: true,
             });
         }
 
         if (member.roles.cache.has(role.id)) {
             return interaction.reply({
-                content: '✅ Tu as déjà le rôle Membre!',
+                content: '✅ Tu es déjà membre du serveur!',
                 ephemeral: true,
             });
         }
 
         await member.roles.add(role);
         await interaction.reply({
-            content: `🎉 Bienvenue sur le serveur! Le rôle Membre t'a été attribué`,
+            content: `🎉 Bienvenue sur le serveur! Le rôle "Member" t'a été attribué`,
             ephemeral: true,
         });
     },

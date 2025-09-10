@@ -62,4 +62,7 @@ jobs:
           key: ${{ secrets.REMOTE_KEY }}
           port: ${{ secrets.REMOTE_PORT }}
           script: |
-            podman run ghcr.io/nadmax/socle
+            cd socle
+            docker compose down
+            docker system prune -af
+            docker compose up -d
