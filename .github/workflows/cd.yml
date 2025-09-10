@@ -53,3 +53,13 @@ jobs:
         run: |
           chmod +x scripts/build-and-push.sh
           ./scripts/build-and-push.sh
+
+      - name: Deploy Bot
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.REMOTE_HOST }}
+          username: ${{ secrets.REMOTE_USER }}
+          key: ${{ secrets.REMOTE_KEY }}
+          port: ${{ secrets.REMOTE_PORT }}
+          script: |
+            podman run ghcr.io/nadmax/socle

@@ -30,7 +30,7 @@ command -v podman >/dev/null || error "podman is not installed"
 [[ -n "$GITHUB_TOKEN" ]] || error "GITHUB_TOKEN is required"
 
 VERSION=$(jq -r '.version' package.json)
-TAGS=()
+TAGS=("${REGISTRY}/${IMAGE_NAME}:latest")
 
 if [[ -n "$VERSION" ]]; then
     TAGS+=("${REGISTRY}/${IMAGE_NAME}:${VERSION}")
@@ -40,35 +40,29 @@ if [[ -n "$VERSION" ]]; then
     fi
 fi
 
-if [[ "$GIT_BRANCH" == "master" ]]; then
-    TAGS+=("${REGISTRY}/${IMAGE_NAME}:latest")
-fi
-
 log "Building image with tags: ${TAGS[*]}"
 
 log "Logging in to ${REGISTRY}..."
 echo "$GITHUB_TOKEN" | podman login "$REGISTRY" --username "$(whoami)" --password-stdin
 
-log "Building image..."
-IMAGE_ID=$(
-    buildah bud \
-        --file "${BUILD_CONTEXT}/Dockerfile" \
-        --tag "${TAGS[0]}" \
-        --label "org.opencontainers.image.source=https://github.com/nadmax/socle" \
-        --label "org.opencontainers.image.description=Socle Discord Bot" \
-        --label "org.opencontainers.image.revision=${VERSION}" \
-        --label "org.opencontainers.image.created=$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
-        --quiet \
-        "${BUILD_CONTEXT}"
-)
-IMAGE_ID=$(echo "$IMAGE_ID" | tr -d "'[:space:]")
+for tag in "${TAGS[@]}"; do
+    log "Building image..."
+    IMAGE_ID=$(
+        buildah bud \
+            --file "${BUILD_CONTEXT}/Dockerfile" \
+            --tag "$tag" \
+            --label "org.opencontainers.image.source=https://github.com/nadmax/socle" \
+            --label "org.opencontainers.image.description=Socle Discord Bot" \
+            --label "org.opencontainers.image.revision=${VERSION}" \
+            --label "org.opencontainers.image.created=$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            --quiet \
+            "${BUILD_CONTEXT}"
+    )
+    IMAGE_ID=$(echo "$IMAGE_ID" | tr -d "'[:space:]")
 
-for tag in "${TAGS[@]:1}"; do
     log "Tagging image as $tag"
     buildah tag "$IMAGE_ID" "$tag"
-done
 
-for tag in "${TAGS[@]}"; do
     log "Pushing $tag..."
     buildah push "$tag"
 done
