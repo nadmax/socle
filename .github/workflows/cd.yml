@@ -63,6 +63,7 @@ jobs:
           port: ${{ secrets.REMOTE_PORT }}
           script: |
             cd socle
+            git pull
             docker compose down
             docker system prune -af
             docker compose up -d
