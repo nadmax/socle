@@ -64,7 +64,7 @@ export const event: Event = {
         });
 
         await interaction.followUp({
-            content: `🎉 Welcome to the Socle! "Member" role has been assigned to you.`,
+            content: `🎉 Welcome to Le Socle! "Member" role has been assigned to you.`,
             ephemeral: true,
         });
     },
