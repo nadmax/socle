@@ -2,6 +2,9 @@ import {
     Events,
     type Interaction,
     GuildMember,
+    ButtonBuilder,
+    ActionRowBuilder,
+    ButtonStyle,
 } from 'discord.js';
 import { Event } from '../types/Event.js';
 
@@ -22,7 +25,7 @@ export const event: Event = {
         const memberId = customId.split('welcome-role-')[1];
         if (interaction.user.id !== memberId) {
             return interaction.reply({
-                content: `❌ Ce bouton n'est pas pour toi!`,
+                content: `❌ This button isn't for you!`,
                 ephemeral: true,
             });
         }
@@ -33,21 +36,35 @@ export const event: Event = {
 
         if (!role) {
             return interaction.reply({
-                content: '⚠️ Le rôle "Member" est introuvable sur le serveur.',
+                content: `⚠️ "Member" role cannot be found.`,
                 ephemeral: true,
             });
         }
 
         if (member.roles.cache.has(role.id)) {
             return interaction.reply({
-                content: '✅ Tu es déjà membre du serveur!',
+                content: `✅ You're already a member!`,
                 ephemeral: true,
             });
         }
 
         await member.roles.add(role);
-        await interaction.reply({
-            content: `🎉 Bienvenue sur le serveur! Le rôle "Member" t'a été attribué`,
+
+        const disabledButton = new ButtonBuilder()
+            .setCustomId(`welcome-role-${member.id}`)
+            .setLabel('✅ Joined!')
+            .setStyle(ButtonStyle.Success)
+            .setDisabled(true);
+        const row = new ActionRowBuilder<ButtonBuilder>().addComponents(disabledButton);
+
+        await interaction.update({
+            content: interaction.message.content,
+            embeds: interaction.message.embeds,
+            components: [row],
+        });
+
+        await interaction.followUp({
+            content: `🎉 Welcome to the Socle! "Member" role has been assigned to you.`,
             ephemeral: true,
         });
     },
