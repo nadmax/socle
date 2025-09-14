@@ -1,0 +1,61 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: socle
+  namespace: default
+  labels:
+    app: socle
+spec:
+  replicas: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  selector:
+    matchLabels:
+      app: socle
+  template:
+    metadata:
+      labels:
+        app: socle
+      annotations:
+        app.version: "0.3.1"
+    spec:
+      serviceAccountName: socle-vault-auth
+      containers:
+        - name: socle
+          image: ghcr.io/nadmax/socle:0.3.1
+          imagePullPolicy: Always
+          envFrom:
+            - secretRef:
+                name: socle-discord-secret
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "50m"
+              limits:
+                memory: "128Mi"
+                cpu: "100m"
+            livenessProbe:
+              exec:
+                command:
+                  - /bin/sh
+                  - -c
+                  - "ps aux | grep '[n]ode.*index.js' || exit 1"
+              initialDelaySeconds: 30
+              periodSeconds: 30
+              timeoutSeconds: 5
+              failureThreshold: 3
+            readinessProbe:
+              exec:
+                command:
+                  - /bin/sh
+                  - -c
+                  - "ps aux | grep '[n]ode.*index.js' || exit 1"
+              initialDelaySeconds: 10
+              periodSeconds: 10
+              timeoutSeconds: 5
+      imagePullSecrets:
+        - name: ghcr-pull-secret
+      restartPolicy: Always
