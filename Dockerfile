@@ -13,6 +13,7 @@ RUN npm ci --omit=dev
 FROM node:22-alpine AS final
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules/
+COPY --from=builder /app/build/ ./build/
 COPY --from=builder /app/src/scripts/entrypoint.sh ./entrypoint.sh
 RUN chmod +x ./entrypoint.sh
 ENTRYPOINT ["./entrypoint.sh"]
