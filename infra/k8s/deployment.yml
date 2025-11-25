@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: socle
+  namespace: socle
+  labels:
+    app: socle
+    component: bot
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: socle
+  template:
+    metadata:
+      labels:
+        app: socle
+        component: bot
+    spec:
+      imagePullSecrets:
+        - name: ghcr-socle-secret
+      containers:
+        - name: socle
+          image: ghcr.io/nadmax/socle:latest
+          envFrom:
+            - secretRef:
+                name: socle-config

@@ -7,63 +7,125 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
+  IMAGE_OWNER: nadmax
 
 jobs:
   deploy:
+    name: Deploy
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
-
+    outputs:
+      image-tag: ${{ steps.meta.outputs.tag }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
-      - name: Install Buildah
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Generate image metadata
+        id: meta
         run: |
-          sudo apt update
-          sudo apt install -y buildah podman
+          git fetch --tags
 
-      - name: Extract version information
-        id: version
-        run: |
-          GIT_TAG=$(git describe --tags --exact-match 2>/dev/null || echo "")
-          VERSION=$(grep -o '"version":\s*"[^"]*"' package.json | cut -d'"' -f4 || echo "")
-          GIT_COMMIT=$(git rev-parse --short HEAD)
+          GIT_TAG=$(git describe --tags --abbrev=0 2>/dev/null)
+          TAG=${GIT_TAG#v}
 
-          echo "git_tag=$GIT_TAG" >> $GITHUB_OUTPUT
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "git_commit=$GIT_COMMIT" >> $GITHUB_OUTPUT
+          echo "tag=${TAG}" >> $GITHUB_OUTPUT
+          echo "Image will be tagged as: ${TAG}"
 
-          echo "Version info:"
-          echo "  Git Tag: $GIT_TAG"
-          echo "  Package Version: $VERSION"
-          echo "  Git Commit: $GIT_COMMIT"
-
-      - name: Log in to Container Registry
-        run: |
-          echo "${{ secrets.GITHUB_TOKEN }}" | podman login ${{ env.REGISTRY }} --username ${{ github.actor }} --password-stdin
-
-      - name: Build and push with Buildah
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          chmod +x scripts/build-and-push.sh
-          ./scripts/build-and-push.sh
-
-      - name: Deploy Bot
-        uses: appleboy/ssh-action@v1
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
         with:
-          host: ${{ secrets.REMOTE_HOST }}
-          username: ${{ secrets.REMOTE_USER }}
-          key: ${{ secrets.REMOTE_KEY }}
-          port: ${{ secrets.REMOTE_PORT }}
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push ${{ matrix.component }} Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/socle:${{ steps.meta.outputs.tag }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/socle:latest
+          cache-from: type=gha,scope=socle
+          cache-to: type=gha,mode=max,scope=socle
+          provenance: false
+
+  update-k8s-manifests:
+    name: Update Kubernetes manifests
+    needs: deploy
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+        with:
+          token: ${{ secrets.GITOPS_TOKEN }}
+          fetch-depth: 0
+
+      - name: Update deployment manifest
+        run: |
+          IMAGE_TAG="${{ needs.deploy.outputs.image-tag }}"
+          NEW_IMAGE="${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/socle:${IMAGE_TAG}"
+
+          sed -i "s|image: ${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/socle:.*|image: ${NEW_IMAGE}|g" \
+          infra/k8s/deployment.yml
+
+          echo "✅ Updated deployment to: ${NEW_IMAGE}"
+
+      - name: Verify manifest changes
+        run: |
+          echo "=== Deployment ==="
+          grep "image:" infra/k8s/deployment.yml
+          echo ""
+
+      - name: Commit and push manifest updates
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git add infra/k8s/deployment.yml
+
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+            exit 0
+          fi
+
+          git commit -m "🚀 Deploy: Update image to ${{ needs.deploy.outputs.image-tag }} [skip ci]
+
+          - Socle: socle:${{ needs.deploy.outputs.image-tag }}
+
+          Source commit: ${{ github.sha }}
+          Triggered by: ${{ github.actor }}
+          Workflow run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+
+          git push origin master
+
+      - name: Create deployment summary
+        uses: actions/github-script@v8
+        with:
           script: |
-            cd socle
-            git pull
-            docker compose down
-            docker system prune -af
-            docker compose up -d
+            github.rest.repos.createCommitComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              commit_sha: context.sha,
+              body: `🚀 **Socle Deployment Initiated**
+              
+              **Image Tag:** \`${{ needs.deploy.outputs.image-tag }}\`
+              
+              **Components Updated:**
+              - 🔹 Socle: \`ghcr.io/nadmax/socle:${{ needs.deploy.outputs.image-tag }}\`
+              
+              **ArgoCD Status:**
+              ArgoCD will automatically detect changes and sync within 3 minutes (default polling interval).
+
+              **Deployment Commit:** Will appear as next commit in this repository`
+            })
