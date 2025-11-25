@@ -21,7 +21,7 @@ spec:
         - name: ghcr-socle-secret
       containers:
         - name: socle
-          image: ghcr.io/nadmax/socle:latest
+          image: ghcr.io/nadmax/socle:0.3.1
           envFrom:
             - secretRef:
                 name: socle-config
