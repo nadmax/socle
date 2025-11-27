@@ -2,7 +2,7 @@ import { clear } from './commands/clear.js';
 import { ping } from './commands/ping.js';
 import { Command } from './types/Command.js';
 
-import { Client, Collection, Events, GatewayIntentBits } from 'discord.js';
+import { ActivityType, Client, Collection, Events, GatewayIntentBits } from 'discord.js';
 import dotenv from 'dotenv';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
@@ -19,7 +19,6 @@ const client = new Client({
     ]
 });
 const commands = new Collection<string, Command>();
-
 commands.set(ping.data.name, ping);
 commands.set(clear.data.name, clear);
 client.on(Events.InteractionCreate, async (interaction) => {
@@ -61,5 +60,12 @@ for (const file of eventFiles) {
 
 client.once(Events.ClientReady, (c) => {
     console.log(`Ready! Logged in as ${c.user.tag}`);
+    c.user.setPresence({
+        activities: [{
+            name: '☸️ Kubernetes',
+            type: ActivityType.Playing
+        }],
+        status: 'online'
+    });
 });
 client.login(process.env.DISCORD_TOKEN);
