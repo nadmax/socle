@@ -18,6 +18,12 @@ const client = new Client({
         GatewayIntentBits.GuildMembers,
     ]
 });
+client.user!.setPresence({
+    activities: [{
+        name: '♾️ À votre service!'
+    }],
+    status: 'online'
+});
 const commands = new Collection<string, Command>();
 
 commands.set(ping.data.name, ping);
