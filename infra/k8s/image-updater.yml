@@ -1,0 +1,24 @@
+apiVersion: argocd-image-updater.argoproj.io/v1alpha1
+kind: ImageUpdater
+metadata:
+  name: socle
+  namespace: argocd-image-updater-system
+spec:
+  sourceRef:
+    kind: Application
+    name: socle
+    namespace: argocd
+  images:
+    - name: socle
+      repository: ghcr.io/nadmax/socle
+      updateStrategy:
+        semver: {}
+      allowTags:
+        - regexp: ^[0-9]+\.[0-9]+\.[0-9]+$
+      pullSecret:
+        name: ghcr-socle-secret
+        namespace: argocd-image-updater-system
+  interval: 2m
+  writeBackConfig:
+    method: argocd
+    target: "kustomization:."
