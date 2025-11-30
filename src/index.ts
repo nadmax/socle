@@ -2,7 +2,7 @@ import { clear } from './commands/clear.js';
 import { ping } from './commands/ping.js';
 import { Command } from './types/Command.js';
 
-import { Client, Collection, Events, GatewayIntentBits } from 'discord.js';
+import { ActivityType, Client, Collection, Events, GatewayIntentBits } from 'discord.js';
 import dotenv from 'dotenv';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
@@ -63,7 +63,8 @@ client.once(Events.ClientReady, (c) => {
     console.log(`Ready! Logged in as ${c.user.tag}`);
     c.user.setPresence({
         activities: [{
-            name: 'Sync Status: Synced 🟢'
+            name: 'Sync Status: Synced 🟢',
+            type: ActivityType.Watching
         }],
         status: 'online'
     });
