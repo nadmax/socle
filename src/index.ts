@@ -2,7 +2,7 @@ import { clear } from './commands/clear.js';
 import { ping } from './commands/ping.js';
 import { Command } from './types/Command.js';
 
-import { ActivityType, Client, Collection, Events, GatewayIntentBits } from 'discord.js';
+import { Client, Collection, Events, GatewayIntentBits } from 'discord.js';
 import dotenv from 'dotenv';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
