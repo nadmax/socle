@@ -63,7 +63,7 @@ client.once(Events.ClientReady, (c) => {
     console.log(`Ready! Logged in as ${c.user.tag}`);
     c.user.setPresence({
         activities: [{
-            name: '☸️ Kubernetes',
+            name: 'Sync Status: Synced 🟢',
             type: ActivityType.Playing
         }],
         status: 'online'
