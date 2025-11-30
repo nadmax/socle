@@ -1,9 +1,7 @@
 name: CD
 
 on:
-  push:
-    branches:
-      - master
+  workflow_dispatch:
 
 env:
   REGISTRY: ghcr.io
@@ -58,57 +56,12 @@ jobs:
           cache-to: type=gha,mode=max,scope=socle
           provenance: false
 
-  update-k8s-manifests:
-    name: Update Kubernetes manifests
+  notify-deploy:
     needs: deploy
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v5
-        with:
-          token: ${{ secrets.GITOPS_TOKEN }}
-          fetch-depth: 0
-
-      - name: Update deployment manifest
-        run: |
-          IMAGE_TAG="${{ needs.deploy.outputs.image-tag }}"
-          NEW_IMAGE="${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/socle:${IMAGE_TAG}"
-
-          sed -i "s|image: ${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/socle:.*|image: ${NEW_IMAGE}|g" \
-          infra/k8s/deployment.yml
-
-          echo "✅ Updated deployment to: ${NEW_IMAGE}"
-
-      - name: Verify manifest changes
-        run: |
-          echo "=== Deployment ==="
-          grep "image:" infra/k8s/deployment.yml
-          echo ""
-
-      - name: Commit and push manifest updates
-        run: |
-          git config user.name "GitHub Actions"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-
-          git add infra/k8s/deployment.yml
-
-          if git diff --staged --quiet; then
-            echo "No changes to commit"
-            exit 0
-          fi
-
-          git commit -m "🚀 Deploy: Update image to ${{ needs.deploy.outputs.image-tag }} [skip ci]
-
-          - Socle: socle:${{ needs.deploy.outputs.image-tag }}
-
-          Source commit: ${{ github.sha }}
-          Triggered by: ${{ github.actor }}
-          Workflow run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-
-          git push origin master
-
       - name: Create deployment summary
         uses: actions/github-script@v8
         with:
@@ -117,7 +70,7 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               commit_sha: context.sha,
-              body: `🚀 **Socle Deployment Initiated**
+              body: `**Socle Deployment Initiated**
               
               **Image Tag:** \`${{ needs.deploy.outputs.image-tag }}\`
               
