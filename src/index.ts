@@ -63,8 +63,7 @@ client.once(Events.ClientReady, (c) => {
     console.log(`Ready! Logged in as ${c.user.tag}`);
     c.user.setPresence({
         activities: [{
-            name: 'Sync Status: Synced 🟢',
-            type: ActivityType.Playing
+            name: 'Sync Status: Synced 🟢'
         }],
         status: 'online'
     });

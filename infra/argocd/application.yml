@@ -9,7 +9,7 @@ metadata:
     argocd-image-updater.argoproj.io/socle.update-strategy: semver
     argocd-image-updater.argoproj.io/socle.allow-tags: regexp:^[0-9]+\.[0-9]+\.[0-9]+$
     argocd-image-updater.argoproj.io/socle.update-interval: 2m
-    argocd-image-updater.argoproj.io/socle.pull-secret: pullsecret:argocd/ghcr-secret
+    argocd-image-updater.argoproj.io/socle.pull-secret: pullsecret:argocd/ghcr-socle-secret
     argocd-image-updater.argoproj.io/write-back-method: argocd
     argocd-image-updater.argoproj.io/write-back-target: "kustomization:."
   finalizers:
