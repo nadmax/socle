@@ -1,0 +1,9 @@
+README.md
+compose.yaml
+.gitignore
+LICENSE
+Makefile
+.github
+target
+.sqlx
+.git

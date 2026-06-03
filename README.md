@@ -1,0 +1,103 @@
+<h1 align="center">YAIMA</h1>
+<p align="center">
+    <strong>Yet Another Identity Management API</strong><br/>
+    <em>Secure • Role-based • Built in Rust</em>
+</p>
+
+<p align="center">
+    <a href="https://github.com/nadmax/yaima/actions">
+        <img alt="CI" src="https://img.shields.io/github/actions/workflow/status/nadmax/yaima/ci.yaml?label=CI&logo=github"/>
+    </a>
+    <a href="https://opensource.org/licenses/MIT">
+        <img alt="License" src="https://img.shields.io/github/license/nadmax/yaima"/>
+    </a>
+</p>
+
+---
+
+## Features
+
+* User registration with email, username, and secure password hashing
+* JWT-based authentication with role claims embedded in access tokens
+* Opaque refresh tokens with automatic rotation
+* Refresh token reuse detection and token-family revocation
+* Role-based authorization (`Guest`, `User`, `Admin`)
+* Password change with active session invalidation
+* Account deactivation with refresh token revocation
+* Admin role assignment and user management endpoints
+* OpenAPI specification generation and Swagger UI
+* PostgreSQL persistence powered by SQLx
+* Structured error responses with stable error codes
+* Built with Axum and Tokio for high-performance async workloads
+
+---
+
+## Prerequisites
+
+Before running YAIMA, ensure the following tools are installed:
+
+* Rust **1.95** or newer
+* Make
+
+* Docker
+* PostgreSQL 18+
+* `sqlx-cli`
+
+Install `sqlx-cli`:
+
+```sh
+cargo install sqlx-cli --no-default-features --features postgres
+```
+
+---
+
+## Quick Start
+
+1. Clone the repository
+
+```sh
+git clone https://github.com/nadmax/yaima.git
+cd yaima
+```
+
+2. Configure the environment
+
+```sh
+cp .env.example .env
+```
+
+Minimal configuration:
+
+```sh
+DATABASE_URL=postgrs://...
+JWT_SECRET=your-secret-at-least-32-characters
+```
+
+3. Start dependencies
+Start the PostgreSQL container:
+
+```sh
+make db
+```
+
+4. Run database migrations
+
+```sh
+make migrate
+```
+
+5. Start the API
+
+```sh
+make dev
+```
+
+The API will be available at [http://localhost:8080](http://localhost:8080)
+
+---
+
+## License
+
+This project is licensed under the **MIT License**.
+
+See the [LICENSE](https://github.com/nadmax/yaima/blob/master/LICENSE) file for details.
