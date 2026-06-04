@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 use axum::Router;
 use axum_test::TestServer;
 use sqlx::{PgPool, postgres::PgPoolOptions};
@@ -9,6 +10,7 @@ use yaima::{
     services::{auth::AuthService, token::TokenService, user::UserService},
     state::AppState,
 };
+
 
 /// Connect to the test database and run all pending migrations.
 pub async fn test_pool() -> PgPool {
@@ -41,6 +43,7 @@ pub fn test_config() -> Config {
     }
 }
 
+
 /// Build the full Axum app wired to a real test database.
 pub async fn test_app() -> (Router, PgPool) {
     let pool = test_pool().await;
@@ -63,7 +66,7 @@ pub async fn test_app() -> (Router, PgPool) {
 /// Spin up a `TestServer` backed by a real test database.
 pub async fn test_server() -> (TestServer, PgPool) {
     let (app, pool) = test_app().await;
-    (TestServer::new(app).unwrap(), pool)
+    (TestServer::new(app), pool)
 }
 
 /// Generate a unique email so parallel tests never collide on the unique constraint.
