@@ -1,4 +1,4 @@
-.PHONY: dev build up down logs db db-reset migrate migrate-revert migrate-add migrate-fresh prepare prepare-check docker-build help
+.PHONY: dev build up down logs db db-reset migrate migrate-revert migrate-add migrate-fresh prepare prepare-check docker-build prek-install prek-run prek-list prek-validate prek-update prek-cache-clean help
 
 ## help: Show this help message
 help:
@@ -73,3 +73,27 @@ prepare-check:
 ## docker-build: Build the Docker image via Compose
 docker-build:
 	docker compose build
+
+## prek-install: Install git hooks via prek
+prek-install:
+	prek install
+
+## prek-run: Run all prek hooks manually
+prek-run:
+	prek run
+
+## prek-list: List all configured prek hooks
+prek-list:
+	prek list
+
+## prek-validate: Validate the prek.toml config file
+prek-validate:
+	prek validate-config prek.toml
+
+## prek-update: Auto-update prek hooks to their latest versions
+prek-update:
+	prek auto-update
+
+## prek-cache-clean: Clean the prek hook cache
+prek-cache-clean:
+	prek cache clean
