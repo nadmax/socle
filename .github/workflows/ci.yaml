@@ -9,6 +9,7 @@ on:
 env:
   CARGO_TERM_COLOR: always
   JWT_SECRET: test
+  SQLX_OFFLINE: true
 
 jobs:
   build_and_test:
@@ -22,7 +23,7 @@ jobs:
         uses: actions-rust-lang/setup-rust-toolchain@v1
 
       - name: Build Project
-        run: cargo build --verbose
+        run: cargo build
 
       - name: Run Tests
-        run: cargo test --verbose
+        run: cargo test

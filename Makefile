@@ -64,11 +64,11 @@ migrate-fresh:
 
 ## prepare: Generate the .sqlx query cache for offline builds
 prepare:
-	cargo sqlx prepare
+	cargo sqlx prepare -- --tests
 
 ## prepare-check: Verify the .sqlx cache is in sync with current queries
 prepare-check:
-	cargo sqlx prepare --check
+	cargo sqlx prepare --check -- --tests
 
 ## docker-build: Build the Docker image via Compose
 docker-build:

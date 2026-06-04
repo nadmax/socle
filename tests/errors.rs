@@ -6,7 +6,7 @@ use yaima::errors::AppError;
 /// Each error variant must map to the documented HTTP status and stable code.
 #[test]
 fn error_http_mapping_is_stable() {
-    let cases: &[(&str, AppError, u16)] = &[
+    let cases: Vec<(&str, AppError, u16)> = vec![
         ("INVALID_CREDENTIALS", AppError::InvalidCredentials, 401),
         ("TOKEN_EXPIRED", AppError::TokenExpired, 401),
         ("TOKEN_INVALID", AppError::TokenInvalid, 401),
@@ -24,7 +24,7 @@ fn error_http_mapping_is_stable() {
         let response = err.into_response();
         assert_eq!(
             response.status().as_u16(),
-            *expected_status,
+            expected_status,
             "wrong HTTP status for error code {code}"
         );
     }
