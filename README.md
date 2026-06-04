@@ -38,15 +38,21 @@ Before running YAIMA, ensure the following tools are installed:
 
 * Rust **1.95** or newer
 * Make
-
 * Docker
 * PostgreSQL 18+
 * `sqlx-cli`
+* `prek`
 
 Install `sqlx-cli`:
 
 ```sh
 cargo install sqlx-cli --no-default-features --features postgres
+```
+
+Install `prek`:
+
+```sh
+cargo install prek
 ```
 
 ---
@@ -60,7 +66,13 @@ git clone https://github.com/nadmax/yaima.git
 cd yaima
 ```
 
-2. Configure the environment
+2. Install Git hooks
+
+```sh
+make prek-install
+```
+
+3. Configure the environment
 
 ```sh
 cp .env.example .env
@@ -73,20 +85,26 @@ DATABASE_URL=postgres://...
 JWT_SECRET=your-secret-at-least-32-characters
 ```
 
-3. Start dependencies
+4. Start dependencies
 Start the PostgreSQL container:
 
 ```sh
 make db
 ```
 
-4. Run database migrations
+5. Run database migrations
 
 ```sh
 make migrate
 ```
 
-5. Start the API
+6. Prepare SQLx offline metadata
+
+```sh
+make prepare
+```
+
+7. Start the API
 
 ```sh
 make dev
