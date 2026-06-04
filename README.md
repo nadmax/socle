@@ -69,7 +69,7 @@ cp .env.example .env
 Minimal configuration:
 
 ```sh
-DATABASE_URL=postgrs://...
+DATABASE_URL=postgres://...
 JWT_SECRET=your-secret-at-least-32-characters
 ```
 
