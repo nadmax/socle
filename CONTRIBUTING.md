@@ -17,7 +17,7 @@ Thank you for taking the time to contribute! This document covers everything you
 
 ## Getting Started
 
-Local setup is covered in the [README Quick Start](README.md). Follow those instructions to get the project building and the database running before working on anything else.
+Local setup is covered in the [README Quick Start](https://github.com/nadmax/yaima/blob/master/README.md#quick-start). Follow those instructions to get the project building and the database running before working on anything else.
 
 ---
 
