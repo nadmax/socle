@@ -110,7 +110,7 @@ make prepare
 make dev
 ```
 
-The API will be available at [http://localhost:8080](http://localhost:8080)
+The API docs will be available at [http://localhost:8080/apidocs](http://localhost:8080/apidocs)
 
 ---
 
