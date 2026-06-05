@@ -59,7 +59,7 @@ Always run `make prepare` after touching a SQL query and commit the resulting `.
 
 ### Git Hooks (prek)
 
-The repository uses [`prek`](https://github.com/prek-sh/prek) to manage Git hooks declared in `prek.toml`. The hooks run formatting and linting checks automatically before each commit, so CI should never catch something your local environment didn't.
+The repository uses [`prek`](https://github.com/j178/prek) to manage Git hooks declared in `prek.toml`. The hooks run formatting and linting checks automatically before each commit, so CI should never catch something your local environment didn't.
 
 | Target | What it does |
 |---|---|
