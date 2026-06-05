@@ -1,4 +1,4 @@
-.PHONY: dev build test down logs db db-reset migrate migrate-revert migrate-add migrate-fresh prepare prepare-check docker-build prek-install prek-run prek-list prek-validate prek-update prek-cache-clean help
+.PHONY: dev build test fmt lint down db db-reset migrate migrate-revert migrate-add migrate-fresh prepare prepare-check prek-install prek-run prek-list prek-validate prek-update prek-cache-clean help
 
 ## help: Show this help message
 help:
@@ -47,10 +47,6 @@ db-reset:
 	docker compose down -v
 	docker compose up -d db
 
-## logs: Tail the api service logs
-logs:
-	docker compose logs -f yaima
-
 ## migrate: Run all pending migrations
 migrate:
 	sqlx migrate run
@@ -77,10 +73,6 @@ prepare:
 ## prepare-check: Verify the .sqlx cache is in sync with current queries
 prepare-check:
 	cargo sqlx prepare --check -- --tests
-
-## docker-build: Build the Docker image via Compose
-docker-build:
-	docker compose build
 
 ## prek-install: Install git hooks via prek
 prek-install:
