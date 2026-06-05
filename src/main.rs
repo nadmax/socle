@@ -57,7 +57,7 @@ use state::AppState;
 )]
 struct ApiDoc;
 
-/// Injects the `bearer_auth` HTTP security scheme into the generated OpenAPI
+/// Injects the `bearer_auth` HTTP security scheme into the generated `OpenAPI`
 /// document. utoipa v5 does not support `security_schemes` inside the
 /// `components()` macro attribute — schemes must be added via `Modify`.
 struct BearerSecurityAddon;
@@ -95,10 +95,10 @@ async fn main() -> anyhow::Result<()> {
     sqlx::migrate!("./migrations").run(&pool).await?;
     tracing::info!("database migrations complete");
 
-    let user_svc = UserService::new(pool.clone());
-    let token_svc = TokenService::new(pool.clone(), config.clone());
-    let auth_svc = AuthService::new(user_svc.clone(), token_svc.clone(), config.clone());
-    let state = AppState::new(auth_svc, user_svc, token_svc);
+    let user = UserService::new(pool.clone());
+    let token = TokenService::new(pool.clone(), config.clone());
+    let auth = AuthService::new(user.clone(), token.clone(), config.clone());
+    let state = AppState::new(auth, user, token);
     let app = Router::new()
         .route("/health", get(health))
         .merge(routes::auth::router())

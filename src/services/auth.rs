@@ -14,21 +14,31 @@ use crate::{
 /// [`TokenService`], keeping each concern in a single place.
 #[derive(Clone)]
 pub struct AuthService {
-    user_svc: UserService,
-    token_svc: TokenService,
+    user: UserService,
+    token: TokenService,
     config: Config,
 }
 
 impl AuthService {
-    pub fn new(user_svc: UserService, token_svc: TokenService, config: Config) -> Self {
+    #[must_use]
+    pub fn new(user: UserService, token: TokenService, config: Config) -> Self {
         Self {
-            user_svc,
-            token_svc,
+            user,
+            token,
             config,
         }
     }
 
     /// Register a new account and immediately issue tokens.
+    ///
+    /// # Errors
+    ///
+    /// Returns an [`AppError`] if:
+    /// - `password` fails the strength validation rules
+    /// - `username` fails the format validation rules
+    /// - the email or username is already taken
+    /// - hashing the password or generating tokens fails
+    /// - the underlying database call fails
     pub async fn register(
         &self,
         email: &str,
@@ -38,7 +48,7 @@ impl AuthService {
         validate_password(password)?;
         validate_username(username)?;
 
-        let user = self.user_svc.create(email, username, password).await?;
+        let user = self.user.create(email, username, password).await?;
         let role = user.role;
         self.issue_tokens(
             user.id,
@@ -51,9 +61,17 @@ impl AuthService {
     }
 
     /// Validate credentials and issue tokens.
+    ///
+    /// # Errors
+    ///
+    /// Returns an [`AppError`] if:
+    /// - no account exists for the given email, or the password is wrong ([`AppError::InvalidCredentials`])
+    /// - the account has been deactivated ([`AppError::AccountDisabled`])
+    /// - verifying the password hash or generating tokens fails
+    /// - the underlying database call fails
     pub async fn login(&self, email: &str, password: &str) -> AppResult<AuthResponse> {
         let user = self
-            .user_svc
+            .user
             .find_by_email(email)
             .await?
             // Use a generic error to avoid leaking whether the email exists.
@@ -79,19 +97,27 @@ impl AuthService {
     }
 
     /// Exchange a valid refresh token for a fresh token pair.
+    ///
+    /// # Errors
+    ///
+    /// Returns an [`AppError`] if:
+    /// - the refresh token is invalid, expired, or has already been rotated
+    /// - the associated account has been deactivated ([`AppError::AccountDisabled`])
+    /// - generating the new access token fails
+    /// - the underlying database call fails
     pub async fn refresh(&self, raw_refresh_token: &str) -> AppResult<AuthResponse> {
         let (new_refresh_token, user_id) = self
-            .token_svc
+            .token
             .rotate_refresh_token(raw_refresh_token)
             .await?;
 
-        let user = self.user_svc.find_by_id(user_id).await?;
+        let user = self.user.find_by_id(user_id).await?;
 
         if !user.is_active {
             return Err(AppError::AccountDisabled);
         }
 
-        let access_token = self.token_svc.generate_access_token(
+        let access_token = self.token.generate_access_token(
             user.id,
             &user.email,
             &user.username,
@@ -107,8 +133,12 @@ impl AuthService {
     }
 
     /// Revoke all refresh tokens for the authenticated user.
+    ///
+    /// # Errors
+    ///
+    /// Returns an [`AppError`] if the underlying database call fails.
     pub async fn logout(&self, user_id: uuid::Uuid) -> AppResult<()> {
-        self.token_svc.revoke_all_user_tokens(user_id).await
+        self.token.revoke_all_user_tokens(user_id).await
     }
 
     async fn issue_tokens(
@@ -120,9 +150,9 @@ impl AuthService {
         user: UserResponse,
     ) -> AppResult<AuthResponse> {
         let access_token = self
-            .token_svc
+            .token
             .generate_access_token(user_id, email, username, role)?;
-        let refresh_token = self.token_svc.create_refresh_token(user_id).await?;
+        let refresh_token = self.token.create_refresh_token(user_id).await?;
 
         Ok(AuthResponse {
             access_token,

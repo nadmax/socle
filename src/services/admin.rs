@@ -12,15 +12,18 @@ use crate::{
 /// separate field on [`AppState`] is needed since [`UserService`] holds an
 /// `Arc<PgPool>` internally and is cheap to clone.
 pub struct AdminService<'a> {
-    user_svc: &'a UserService,
+    user: &'a UserService,
 }
 
 impl<'a> AdminService<'a> {
-    pub fn new(user_svc: &'a UserService) -> Self {
-        Self { user_svc }
+    #[must_use]
+    pub fn new(user: &'a UserService) -> Self {
+        Self { user }
     }
 
     /// Assign a new role to a user.
+    ///
+    /// # Errors
     ///
     /// Returns [`AppError::Forbidden`] if the admin attempts to change their
     /// own role, preventing accidental self-lockout.
@@ -34,7 +37,7 @@ impl<'a> AdminService<'a> {
             return Err(crate::errors::AppError::Forbidden);
         }
 
-        let user = self.user_svc.update_role(target_id, new_role).await?;
+        let user = self.user.update_role(target_id, new_role).await?;
 
         tracing::info!(
             admin_id  = %admin_id,

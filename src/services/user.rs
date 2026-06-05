@@ -14,11 +14,17 @@ pub struct UserService {
 }
 
 impl UserService {
+    #[must_use]
     pub fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 
     /// Fetch a user by their UUID. Returns [`AppError::UserNotFound`] if absent.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`AppError::UserNotFound`] if no user exists with the given `id`, or
+    /// an [`AppError`] if the database query fails.
     pub async fn find_by_id(&self, id: Uuid) -> AppResult<User> {
         sqlx::query_as!(
             User,
@@ -37,6 +43,11 @@ impl UserService {
     }
 
     /// Fetch a user by email address.
+    ///
+    /// # Errors
+    ///
+    /// Returns an [`AppError`] if the database query fails. Returns `Ok(None)` if
+    /// no user exists with the given email.
     pub async fn find_by_email(&self, email: &str) -> AppResult<Option<User>> {
         sqlx::query_as!(
             User,
@@ -58,6 +69,12 @@ impl UserService {
     ///
     /// Returns [`AppError::EmailTaken`] or [`AppError::UsernameTaken`] on
     /// unique-constraint violations so callers get a precise error code.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`AppError::EmailTaken`] or [`AppError::UsernameTaken`] if the email
+    /// or username is already in use, [`AppError::Hashing`] if password hashing
+    /// fails, or an [`AppError`] if the database insert fails.
     pub async fn create(&self, email: &str, username: &str, password: &str) -> AppResult<User> {
         let password_hash = hash_password(password)?;
         let id = Uuid::now_v7();
@@ -96,6 +113,13 @@ impl UserService {
     }
 
     /// Update the stored password hash after verifying the current password.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`AppError::UserNotFound`] if the user no longer exists,
+    /// [`AppError::InvalidCredentials`] if `current_password` is wrong,
+    /// [`AppError::Hashing`] if hashing the new password fails, or an [`AppError`]
+    /// if the database update fails.
     pub async fn change_password(
         &self,
         user_id: Uuid,
@@ -126,6 +150,11 @@ impl UserService {
     }
 
     /// Assign a new role to a user (admin operation).
+    ///
+    /// # Errors
+    ///
+    /// Returns [`AppError::UserNotFound`] if no user exists with the given
+    /// `user_id`, or an [`AppError`] if the database update fails.
     pub async fn update_role(&self, user_id: Uuid, role: Role) -> AppResult<User> {
         sqlx::query_as!(
             User,
@@ -146,6 +175,10 @@ impl UserService {
     }
 
     /// Soft-delete a user by setting `is_active = FALSE`.
+    ///
+    /// # Errors
+    ///
+    /// Returns an [`AppError`] if the database update fails.
     pub async fn deactivate(&self, user_id: Uuid) -> AppResult<()> {
         sqlx::query!(
             "UPDATE users SET is_active = FALSE, updated_at = NOW() WHERE id = $1",

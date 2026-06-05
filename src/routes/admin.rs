@@ -21,6 +21,11 @@ pub fn router() -> Router<AppState> {
 /// Assign a new role to any user.
 ///
 /// Only reachable by callers whose JWT carries the `admin` role.
+///
+/// # Errors
+///
+/// Returns an [`AppError`] if the target user does not exist, or if the
+/// underlying service or database call fails.
 #[utoipa::path(
     put,
     path = "/admin/users/{id}/role",
@@ -41,7 +46,7 @@ pub async fn update_user_role(
     Path(target_id): Path<Uuid>,
     Json(req): Json<UpdateRoleRequest>,
 ) -> AppResult<Json<UserResponse>> {
-    let svc = AdminService::new(&state.user_svc);
+    let svc = AdminService::new(&state.user);
     let user = svc
         .update_user_role(claims.sub, target_id, req.role)
         .await?;

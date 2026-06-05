@@ -6,7 +6,7 @@ use serde::Deserialize;
 /// into this struct. All fields are required unless a `default` is given.
 #[derive(Debug, Clone, Deserialize)]
 pub struct Config {
-    /// Full PostgreSQL connection string.
+    /// Full `PostgreSQL` connection string.
     pub database_url: String,
 
     /// Secret used to sign JWT access tokens. Must be at least 32 bytes.
@@ -27,6 +27,11 @@ pub struct Config {
 
 impl Config {
     /// Load configuration from the environment, optionally reading a `.env` file first.
+    ///
+    /// # Errors
+    ///
+    /// Returns an [`envy::Error`] if any required environment variables are missing or
+    /// cannot be deserialized into the expected types.
     pub fn from_env() -> Result<Self, envy::Error> {
         let _ = dotenvy::dotenv();
         envy::from_env()

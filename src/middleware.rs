@@ -33,7 +33,7 @@ where
     async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
         let app_state = AppState::from_ref(state);
         let token = extract_bearer(&parts.headers).ok_or(AppError::MissingAuthHeader)?;
-        let claims = app_state.token_svc.validate_access_token(token)?;
+        let claims = app_state.token.validate_access_token(token)?;
         Ok(AuthUser(claims))
     }
 }

@@ -27,6 +27,7 @@ impl Role {
     /// Returns `true` if this role is at least as privileged as `required`.
     ///
     /// Hierarchy (ascending): `Guest < User < Admin`.
+    #[must_use]
     pub fn is_at_least(self, required: Role) -> bool {
         self.level() >= required.level()
     }

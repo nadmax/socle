@@ -6,17 +6,18 @@ use crate::services::{auth::AuthService, token::TokenService, user::UserService}
 /// via `PgPool` / `Config`).
 #[derive(Clone)]
 pub struct AppState {
-    pub auth_svc: AuthService,
-    pub user_svc: UserService,
-    pub token_svc: TokenService,
+    pub auth: AuthService,
+    pub user: UserService,
+    pub token: TokenService,
 }
 
 impl AppState {
-    pub fn new(auth_svc: AuthService, user_svc: UserService, token_svc: TokenService) -> Self {
+    #[must_use]
+    pub fn new(auth: AuthService, user: UserService, token: TokenService) -> Self {
         Self {
-            auth_svc,
-            user_svc,
-            token_svc,
+            auth,
+            user,
+            token,
         }
     }
 }
