@@ -1,4 +1,4 @@
-.PHONY: dev build up down logs db db-reset migrate migrate-revert migrate-add migrate-fresh prepare prepare-check docker-build prek-install prek-run prek-list prek-validate prek-update prek-cache-clean help
+.PHONY: dev build test down logs db db-reset migrate migrate-revert migrate-add migrate-fresh prepare prepare-check docker-build prek-install prek-run prek-list prek-validate prek-update prek-cache-clean help
 
 ## help: Show this help message
 help:
@@ -25,6 +25,14 @@ dev:
 ## build: Build the release binary
 build:
 	cargo build --release --locked
+
+## test: Run all tests
+test:
+	cargo test
+
+## lint: Run clippy
+lint:
+	cargo clippy -- -D warnings -W clippy::pedantic
 
 ## down: Stop all services
 down:
