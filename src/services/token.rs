@@ -35,11 +35,16 @@ pub struct TokenService {
 }
 
 impl TokenService {
+    #[must_use]
     pub fn new(pool: PgPool, config: Config) -> Self {
         Self { pool, config }
     }
 
     /// Encode a new signed JWT access token for the given user.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`AppError::TokenInvalid`] if the JWT encoding fails.
     pub fn generate_access_token(
         &self,
         user_id: Uuid,
@@ -64,7 +69,13 @@ impl TokenService {
         .map_err(|_| AppError::TokenInvalid)
     }
 
+
     /// Validate a JWT access token and return its claims.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`AppError::TokenExpired`] if the token's signature is valid but the
+    /// token has expired, or [`AppError::TokenInvalid`] for any other decoding failure.
     pub fn validate_access_token(&self, token: &str) -> AppResult<Claims> {
         decode::<Claims>(
             token,
@@ -80,15 +91,19 @@ impl TokenService {
             }
         })
     }
-
     /// Create a new opaque refresh token, persist its hash, and return the
     /// raw token string (never stored in plaintext).
+    ///
+    /// # Errors
+    ///
+    /// Returns an [`AppError`] if hashing the token fails, or if the database
+    /// insert fails.
     pub async fn create_refresh_token(&self, user_id: Uuid) -> AppResult<String> {
         let raw = generate_opaque_token();
         let token_hash = hash_refresh_token(&raw)?;
 
         let expires_at = OffsetDateTime::now_utc()
-            + Duration::seconds(self.config.refresh_token_expiry_secs as i64);
+            + Duration::seconds(self.config.refresh_token_expiry_secs.cast_signed());
 
         sqlx::query!(
             r#"
@@ -110,6 +125,12 @@ impl TokenService {
     /// then immediately rotate it (old token revoked, new one issued).
     ///
     /// Returns `(new_raw_token, user_id)` on success.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`AppError::RefreshTokenInvalid`] if the token is not found, already
+    /// revoked, or expired — in the latter two cases all tokens for that user are
+    /// also revoked proactively. Returns an [`AppError`] if any database call fails.
     pub async fn rotate_refresh_token(&self, raw_token: &str) -> AppResult<(String, Uuid)> {
         let hash = hash_refresh_token(raw_token)?;
 
@@ -143,6 +164,10 @@ impl TokenService {
     }
 
     /// Revoke all refresh tokens belonging to a user (used on logout).
+    ///
+    /// # Errors
+    ///
+    /// Returns an [`AppError`] if the database update fails.
     pub async fn revoke_all_user_tokens(&self, user_id: Uuid) -> AppResult<()> {
         sqlx::query!(
             "UPDATE refresh_tokens SET revoked = TRUE WHERE user_id = $1 AND revoked = FALSE",
@@ -165,6 +190,10 @@ fn generate_opaque_token() -> String {
 ///
 /// Using Argon2 ensures that a DB leak cannot be trivially converted into
 /// working tokens without substantial compute.
+///
+/// # Errors
+///
+/// Returns [`AppError::Hashing`] if the Argon2 hashing operation fails.
 fn hash_refresh_token(raw: &str) -> AppResult<String> {
     let salt = SaltString::generate(&mut ArgonOsRng);
     Argon2::default()
@@ -181,6 +210,10 @@ fn unix_now() -> u64 {
 }
 
 /// Hash a plaintext password with Argon2id.
+///
+/// # Errors
+///
+/// Returns [`AppError::Hashing`] if the Argon2 hashing operation fails.
 pub fn hash_password(password: &str) -> AppResult<String> {
     let salt = SaltString::generate(&mut ArgonOsRng);
     Argon2::default()
@@ -190,6 +223,11 @@ pub fn hash_password(password: &str) -> AppResult<String> {
 }
 
 /// Verify a plaintext password against an Argon2 hash.
+///
+/// # Errors
+///
+/// Returns [`AppError::Hashing`] if `hash` is not a valid Argon2 hash string.
+/// Returns `Ok(false)` if the hash is valid but the password does not match.
 pub fn verify_password(password: &str, hash: &str) -> AppResult<bool> {
     let parsed = PasswordHash::new(hash).map_err(|_| AppError::Hashing)?;
     Ok(Argon2::default()

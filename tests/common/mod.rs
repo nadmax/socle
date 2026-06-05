@@ -49,10 +49,10 @@ pub async fn test_app() -> (Router, PgPool) {
     let pool = test_pool().await;
     let config = test_config();
 
-    let user_svc = UserService::new(pool.clone());
-    let token_svc = TokenService::new(pool.clone(), config.clone());
-    let auth_svc = AuthService::new(user_svc.clone(), token_svc.clone(), config.clone());
-    let state = AppState::new(auth_svc, user_svc, token_svc);
+    let user = UserService::new(pool.clone());
+    let token = TokenService::new(pool.clone(), config.clone());
+    let auth = AuthService::new(user.clone(), token.clone(), config.clone());
+    let state = AppState::new(auth, user, token);
 
     let app = Router::new()
         .merge(routes::auth::router())
