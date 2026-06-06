@@ -4,4 +4,8 @@ rev = "v6.0.0"
 hooks = [
   { id = "check-yaml" },
   { id = "end-of-file-fixer" },
+  { id = "trailing-whitespace" },
+  { id = "check-toml" },
+  { id = "detect-private-key" },
+  { id = "no-commit-to-branch" },
 ]
