@@ -1,7 +1,7 @@
 <h1 align="center">YAIMA</h1>
 <p align="center">
     <strong>Yet Another Identity Management API</strong><br/>
-    <em>Secure • Role-based • Built in Rust</em>
+    <em>Secure • Role-based • Written in Rust</em>
 </p>
 
 <p align="center">
