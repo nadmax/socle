@@ -13,28 +13,19 @@
     </a>
 </p>
 
----
-
 ## Features
 
-* User registration with email, username, and secure password hashing
-* JWT-based authentication with role claims embedded in access tokens
-* Opaque refresh tokens with automatic rotation
-* Refresh token reuse detection and token-family revocation
+* Built with Axum and Tokio for high-performance async workloads
 * Role-based authorization (`Guest`, `User`, `Admin`)
-* Password change with active session invalidation
 * Account deactivation with refresh token revocation
 * Admin role assignment and user management endpoints
 * OpenAPI specification generation and Swagger UI
 * PostgreSQL persistence powered by SQLx
 * Structured error responses with stable error codes
-* Built with Axum and Tokio for high-performance async workloads
-
----
 
 ## Prerequisites
 
-Before running YAIMA, ensure the following tools are installed:
+Ensure the following tools are installed:
 
 * Rust **1.95** or newer
 * Make
@@ -54,8 +45,6 @@ Install `prek`:
 ```sh
 cargo install prek
 ```
-
----
 
 ## Quick Start
 
@@ -110,9 +99,7 @@ make prepare
 make dev
 ```
 
-The API docs will be available at [http://localhost:8080/apidocs](http://localhost:8080/apidocs)
-
----
+Docs will be available at [http://localhost:8080/apidocs](http://localhost:8080/apidocs)
 
 ## License
 
