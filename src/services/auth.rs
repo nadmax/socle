@@ -3,6 +3,7 @@ use crate::{
     errors::{AppError, AppResult},
     models::{AuthResponse, UserResponse},
     services::{
+        oauth::OAuthProfile,
         token::{TokenService, verify_password},
         user::UserService,
     },
@@ -134,6 +135,62 @@ impl AuthService {
     /// Returns an [`AppError`] if the underlying database call fails.
     pub async fn logout(&self, user_id: uuid::Uuid) -> AppResult<()> {
         self.token.revoke_all_user_tokens(user_id).await
+    }
+
+    /// Find or create a local user from a verified OAuth profile, then issue
+    /// a token pair using the same path as [`login`].
+    ///
+    /// # Account merging
+    ///
+    /// Resolution order:
+    /// 1. An `oauth_accounts` row already exists for `(provider, provider_user_id)`
+    ///    → return the linked user directly. This is the fast path on every login
+    ///    after the first.
+    /// 2. No OAuth link, but the profile email matches a local account → link the
+    ///    new provider to that account. Lets a user who registered with
+    ///    email/password later sign in with Google and land on the same account.
+    /// 3. Neither matches → create a brand-new user with an unusable password hash,
+    ///    then write the OAuth link.
+    ///
+    /// # Errors
+    ///
+    /// Returns an [`AppError`] if any database call or token generation fails,
+    /// or if the resolved account has been deactivated.
+    pub async fn login_or_register_oauth(&self, profile: &OAuthProfile) -> AppResult<AuthResponse> {
+        if let Some(user) = self
+            .user
+            .find_by_oauth_identity(profile.provider, &profile.provider_user_id)
+            .await?
+        {
+            if !user.is_active {
+                return Err(AppError::AccountDisabled);
+            }
+            let role = user.role;
+            let user_response = UserResponse::from(user.clone());
+            return self
+                .issue_tokens(user.id, &user.email, &user.username, role, user_response)
+                .await;
+        }
+
+        let user = match self.user.find_by_email(&profile.email).await? {
+            Some(existing) => existing,
+            None => {
+                self.user
+                    .create_from_oauth(&profile.email, profile.display_name.as_deref())
+                    .await?
+            }
+        };
+
+        if !user.is_active {
+            return Err(AppError::AccountDisabled);
+        }
+
+        self.user.link_oauth_account(user.id, profile).await?;
+
+        let role = user.role;
+        let user_response = UserResponse::from(user.clone());
+        self.issue_tokens(user.id, &user.email, &user.username, role, user_response)
+            .await
     }
 
     async fn issue_tokens(
