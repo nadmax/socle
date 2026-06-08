@@ -2,8 +2,6 @@
 
 Thank you for taking the time to contribute! This document covers everything you need to know to go from a fresh clone to an accepted pull request.
 
----
-
 ## Table of Contents
 
 - [Getting Started](#getting-started)
@@ -13,13 +11,9 @@ Thank you for taking the time to contribute! This document covers everything you
 - [Running Tests](#running-tests)
 - [Submitting Changes](#submitting-changes)
 
----
-
 ## Getting Started
 
 Local setup is covered in the [README Quick Start](https://github.com/nadmax/yaima/blob/master/README.md#quick-start). Follow those instructions to get the project building and the database running before working on anything else.
-
----
 
 ## Development Workflow
 
@@ -72,11 +66,9 @@ The repository uses [`prek`](https://github.com/j178/prek) to manage Git hooks d
 
 After cloning, run `make prek-install` before making any changes so the pre-commit hooks are active.
 
----
-
 ## Project Structure
 
-```
+```sh
 src/
 ├── main.rs          # Binary entry point; wires up the router and starts the server
 ├── lib.rs           # Crate root; re-exports the public surface used by integration tests
@@ -107,8 +99,6 @@ tests/
 ```
 
 The `tests/` tree deliberately mirrors `src/`. When you add a new module or change existing behaviour, put the corresponding test file in the matching location under `tests/`.
-
----
 
 ## Coding Conventions
 
@@ -179,12 +169,9 @@ Common branch prefixes:
 
 ### Commit Messages
 
-Follow the [Conventional Commits](https://www.conventionalcommits.org/) specification.  
-Use the imperative mood ("add", "fix", "remove" — not "added", "fixes", "removed").
+Follow the [Conventional Commits](https://www.conventionalcommits.org/) specification.
 
-Example:
-
-```
+```sh
 feat(auth): add refresh token rotation
 
 fix(services/token): return 401 instead of 500 on expired JWT
