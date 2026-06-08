@@ -1,4 +1,4 @@
-.PHONY: dev build test fmt lint down db db-reset migrate migrate-revert migrate-add migrate-fresh prepare prepare-check prek-install prek-run prek-list prek-validate prek-update prek-cache-clean help
+.PHONY: dev build test fmt lint docker-up docker-down docker-db docker-db-reset migrate migrate-revert migrate-add migrate-fresh prepare prepare-check prek-install prek-run prek-list prek-validate prek-update prek-cache-clean help
 
 ## help: Show this help message
 help:
@@ -34,16 +34,20 @@ test:
 lint:
 	cargo clippy -- -D warnings -W clippy::pedantic
 
-## down: Stop all services
-down:
+## docker-up: Start all services
+docker-up:
+	docker compose up -d
+
+## docker-down: Stop all services
+docker-down:
 	docker compose down
 
-## db: Start only the database service
-db:
+## docker-db: Start only the database service
+docker-db:
 	docker compose up -d db
 
-## db-reset: Wipe all volumes and restart the database
-db-reset:
+## docker-db-reset: Wipe all volumes and restart the database
+docker-db-reset:
 	docker compose down -v
 	docker compose up -d db
 

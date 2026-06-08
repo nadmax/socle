@@ -78,7 +78,7 @@ JWT_SECRET=your-secret-at-least-32-characters
 Start the PostgreSQL container:
 
 ```sh
-make db
+make docker-db
 ```
 
 5. Run database migrations

@@ -32,9 +32,10 @@ All common tasks are wrapped in `make` targets. Run `make help` at any time to s
 
 | Target | What it does |
 |---|---|
-| `make db` | Start only the database container |
-| `make db-reset` | Wipe all volumes and restart the database |
-| `make down` | Stop all Compose services |
+| `make docker-db` | Start only the database container |
+| `make docker-db-reset` | Wipe all volumes and restart the database |
+| `make docker-up` | Start all services |
+| `make docker-down` | Stop all services |
 | `make migrate` | Apply all pending migrations |
 | `make migrate-revert` | Revert the last applied migration |
 | `make migrate-add` | Prompt for a name and create a new reversible migration file |
