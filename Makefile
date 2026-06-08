@@ -34,8 +34,8 @@ test:
 lint:
 	cargo clippy -- -D warnings -W clippy::pedantic
 
-## start: Start all services
-docker-start:
+## docker-up: Start all services
+docker-up:
 	docker compose up -d
 
 ## docker-down: Stop all services
