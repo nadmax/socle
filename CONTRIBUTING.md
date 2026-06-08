@@ -114,11 +114,17 @@ The `tests/` tree deliberately mirrors `src/`. When you add a new module or chan
 
 ### Idiomatic Rust
 
-- Prefer borrowing (`&T`, `&str`, `&[T]`) over cloning. Only clone when ownership transfer is genuinely needed.
-- Use the `?` operator for error propagation instead of explicit `match` chains.
-- Favour iterators over manual `for` loops and avoid intermediate `.collect()` calls where possible.
-- Do not use `unwrap()` or `expect()` outside of tests. Propagate errors up to the handler layer.
-- Avoid `panic!` in any code path that could be reached in production.
+These aren't hard rules to memorise before your first commit — they're pointers to help your code fit the existing style. Reviewers will flag anything that needs adjusting and are happy to explain the reasoning.
+
+A few patterns we lean on throughout the codebase:
+
+- **Borrowing over cloning** — prefer `&T`, `&str`, `&[T]` where possible; clone when you genuinely need ownership.
+- **`?` for error propagation** — keeps call sites readable; explicit `match` chains are fine when you need to handle branches differently.
+- **Iterators over manual loops** — often clearer, but don't force it if a `for` loop reads better.
+- **No `unwrap()`/`expect()` outside tests** — propagate errors up to the handler layer instead.
+- **No `panic!` in production paths** — if a branch truly can't fail, leave a `// Invariant:` comment explaining why.
+
+If you're unsure about any of these, just open the PR — it's easier to iterate on real code than to get everything right upfront.
 
 ### Error Handling
 
@@ -129,64 +135,26 @@ All error types are defined in `src/errors.rs`. The pattern used throughout this
 - When adding a new error condition, add a variant to the appropriate error enum in `errors.rs` rather than introducing a new ad-hoc type.
 - Never swallow errors silently. If a branch genuinely cannot fail, document why with a `// SAFETY:` or `// Invariant:` comment.
 
-### Linting
-
-The project runs Clippy with `-D warnings -W clippy::pedantic`, which means both standard and pedantic lints are treated as hard errors. All Clippy warnings must be resolved — do not suppress them with `#[allow(...)]`. If a lint is a genuine false positive, use `#[expect(clippy::lint_name)]` with a comment explaining why.
-
-Run `make lint` locally before pushing. The prek pre-commit hook enforces the same check.
-
-### Formatting
-
-Code formatting is enforced by `rustfmt` via the prek pre-commit hook. After running `make prek-install`, every commit is checked automatically. To format manually, run:
-
-```bash
-make fmt
-```
-
-### Style Rules
-
-- **Naming** — follow standard Rust conventions: `snake_case` for functions and variables, `UpperCamelCase` for types, `SCREAMING_SNAKE_CASE` for constants.
-- **TODOs** — every `TODO` comment must reference an open issue: `// TODO(#123): short description`.
-
 ### Documentation
 
-- Public items (types, functions, trait impls) must have `///` doc comments explaining what they do and any invariants the caller must uphold.
-- Inline `//` comments explain *why*, not *what*. Avoid restating code in prose.
-
----
+Public items (types, functions, trait impls) must have `///` doc comments explaining what they do and any invariants the caller must uphold.
 
 ## Running Tests
-
 ```sh
-# Run the full suite (unit + integration)
 make test
-
-# Run only unit tests (no database required)
-cargo test --lib
-
-# Run only integration tests
-cargo test --test '*'
-
-# Run a specific test by name
-cargo test <test_name>
-
-# Run tests with output printed (useful for debugging)
-cargo test -- --nocapture
 ```
 
 Integration tests under `tests/` spin up a real application instance against a test database. Before running them, make sure the database container is up and migrations are applied:
 
 ```sh
-make db       # start the database container
-make migrate  # apply any pending migrations
-make test     # now run the full suite
+make docker-db       # start the database container
+make migrate         # apply any pending migrations
+make test            # now run the full suite
 ```
 
 If your schema is out of date or you want a clean slate, use `make migrate-fresh` to drop and recreate the database before running tests.
 
 Test names follow the pattern `<subject>_should_<expected_outcome>_when_<condition>` — for example, `login_should_return_401_when_password_is_wrong`. Aim for one logical assertion per test.
-
----
 
 ## Submitting Changes
 
@@ -194,7 +162,7 @@ Test names follow the pattern `<subject>_should_<expected_outcome>_when_<conditi
 
 Branch off `master` for all changes:
 
-```
+```sh
 git checkout -b <type>/<short-description>
 ```
 
@@ -207,21 +175,14 @@ Common branch prefixes:
 | `chore/` | Tooling, dependencies, CI |
 | `docs/` | Documentation only |
 | `refactor/` | Code restructuring without behaviour change |
-| `test/` | Adding or improving tests |
+| `test/` | Adding or improving tests |`
 
 ### Commit Messages
 
-Follow the [Conventional Commits](https://www.conventionalcommits.org/) specification:
+Follow the [Conventional Commits](https://www.conventionalcommits.org/) specification.  
+Use the imperative mood ("add", "fix", "remove" — not "added", "fixes", "removed").
 
-```
-<type>(<optional scope>): <short summary in imperative mood>
-
-<optional body — wrap at 72 chars>
-
-<optional footer: BREAKING CHANGE or Closes #issue>
-```
-
-Examples:
+Example:
 
 ```
 feat(auth): add refresh token rotation
@@ -230,20 +191,3 @@ fix(services/token): return 401 instead of 500 on expired JWT
 
 Closes #42
 ```
-
-Keep the subject line under 72 characters and use the imperative mood ("add", "fix", "remove" — not "added", "fixes", "removed").
-
-### Pull Request Checklist
-
-Before opening a PR, confirm that all of the following are true:
-
-- [ ] `make prek-run` passes with no failures (formatting + linting)
-- [ ] `make lint` passes with no warnings
-- [ ] `make test` passes locally against a freshly migrated database
-- [ ] `make prepare-check` passes (`.sqlx` cache is up to date)
-- [ ] New behaviour is covered by tests in the appropriate `tests/` sub-directory
-- [ ] Public API changes include updated `///` doc comments
-- [ ] The PR description explains *what* changed and *why*
-- [ ] Related issue(s) are referenced in the PR description (`Closes #N`)
-
-PRs that fail CI or are missing tests will not be merged until those issues are resolved.
