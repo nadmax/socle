@@ -16,16 +16,9 @@ jobs:
     name: Check Commit Messages
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v6
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
-
-      - name: Install pre-commit
-        run: pip install pre-commit
-
-      - name: Link prek.toml as pre-commit config
-        run: ln -s prek.toml .pre-commit-config.yaml
 
       - name: Validate commit messages
         run: |
@@ -37,12 +30,11 @@ jobs:
             HEAD=${{ github.sha }}
           fi
           git log --format="%s" ${BASE}..${HEAD} | while IFS= read -r msg; do
-            tmpfile=$(mktemp)
-            echo "$msg" > "$tmpfile"
-            pre-commit run conventional-pre-commit \
-              --hook-stage commit-msg \
-              --commit-msg-filename "$tmpfile" || exit 1
-            rm "$tmpfile"
+            echo "Checking: $msg"
+            echo "$msg" | grep -Eq "^(feat|fix|chore|test|docs|ci|refactor)(\(.+\))?: .+" || {
+              echo "Invalid commit message: $msg"
+              exit 1
+            }
           done
 
   format:
