@@ -24,6 +24,9 @@ jobs:
       - name: Install pre-commit
         run: pip install pre-commit
 
+      - name: Link prek.toml as pre-commit config
+        run: ln -s prek.toml .pre-commit-config.yaml
+
       - name: Validate commit messages
         run: |
           if [ "${{ github.event_name }}" = "pull_request" ]; then
