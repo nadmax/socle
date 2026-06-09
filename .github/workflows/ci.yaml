@@ -12,6 +12,31 @@ env:
   SQLX_OFFLINE: true
 
 jobs:
+  check-commits:
+    name: Check Commit Messages
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Validate commit messages
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            BASE=${{ github.event.pull_request.base.sha }}
+            HEAD=${{ github.event.pull_request.head.sha }}
+          else
+            BASE=${{ github.event.before }}
+            HEAD=${{ github.sha }}
+          fi
+          git log --format="%s" ${BASE}..${HEAD} | while IFS= read -r msg; do
+            echo "Checking: $msg"
+            echo "$msg" | grep -Eq "^(feat|fix|chore|test|docs|ci|refactor)(\(.+\))?: .+" || {
+              echo "Invalid commit message: $msg"
+              exit 1
+            }
+          done
+
   format:
     runs-on: ubuntu-latest
     steps:

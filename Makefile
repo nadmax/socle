@@ -85,6 +85,7 @@ prepare-check:
 ## prek-install: Install git hooks via prek
 prek-install:
 	prek install
+	prek install --hook-type commit-msg
 
 ## prek-run: Run all prek hooks manually
 prek-run:
