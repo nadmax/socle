@@ -14,5 +14,5 @@ hooks = [
 repo = "https://github.com/compilerla/conventional-pre-commit"
 rev = "v4.4.0"
 hooks = [
-  { id = "conventional-pre-commit", stages = ["commit-msg"], args = ["--verbose", "--strict", "--force-scope", "feat", "fix", "chore", "test", "docs", "ci", "refactor"] },
+  { id = "conventional-pre-commit", stages = ["commit-msg"], args = ["--verbose", "--strict", "--force-scope", "feat", "fix", "chore", "test", "docs", "ci", "refactor", "performance"] },
 ]

@@ -12,6 +12,36 @@ env:
   SQLX_OFFLINE: true
 
 jobs:
+  check-commits:
+    name: Check Commit Messages
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Install pre-commit
+        run: pip install pre-commit
+
+      - name: Validate commit messages
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            BASE=${{ github.event.pull_request.base.sha }}
+            HEAD=${{ github.event.pull_request.head.sha }}
+          else
+            BASE=${{ github.event.before }}
+            HEAD=${{ github.sha }}
+          fi
+          git log --format="%s" ${BASE}..${HEAD} | while IFS= read -r msg; do
+            tmpfile=$(mktemp)
+            echo "$msg" > "$tmpfile"
+            pre-commit run conventional-pre-commit \
+              --hook-stage commit-msg \
+              --commit-msg-filename "$tmpfile" || exit 1
+            rm "$tmpfile"
+          done
+
   format:
     runs-on: ubuntu-latest
     steps:

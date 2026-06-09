@@ -53,13 +53,13 @@ The project uses `sqlx` with compile-time query checking. The `.sqlx` query cach
 
 Always run `make prepare` after touching a SQL query and commit the resulting `.sqlx` changes alongside your code. CI runs `make prepare-check` and will fail if the cache is stale.
 
-### Git Hooks (prek)
+### Prek
 
 The repository uses [`prek`](https://github.com/j178/prek) to manage Git hooks declared in `prek.toml`. The hooks run formatting and linting checks automatically before each commit, so CI should never catch something your local environment didn't.
 
 | Target | What it does |
 |---|---|
-| `make prek-install` | Install the Git hooks — **run this once after cloning** |
+| `make prek-install` | Install the Git hooks **(run this once after cloning)** |
 | `make prek-run` | Run all hooks manually against the working tree |
 | `make prek-list` | List every configured hook and its status |
 | `make prek-validate` | Validate `prek.toml` for syntax errors |
