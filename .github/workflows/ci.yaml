@@ -25,7 +25,6 @@ jobs:
         run: cargo fmt --check
 
   build_and_test:
-    needs: format
     name: Build & Test
     runs-on: ubuntu-latest
     steps:
