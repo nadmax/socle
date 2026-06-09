@@ -11,7 +11,6 @@ use yaima::{
     state::AppState,
 };
 
-
 /// Connect to the test database and run all pending migrations.
 pub async fn test_pool() -> PgPool {
     let url = env::var("TEST_DATABASE_URL")
@@ -42,7 +41,6 @@ pub fn test_config() -> Config {
         bind_addr: "0.0.0.0:0".to_owned(),
     }
 }
-
 
 /// Build the full Axum app wired to a real test database.
 pub async fn test_app() -> (Router, PgPool) {

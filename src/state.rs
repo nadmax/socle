@@ -14,10 +14,6 @@ pub struct AppState {
 impl AppState {
     #[must_use]
     pub fn new(auth: AuthService, user: UserService, token: TokenService) -> Self {
-        Self {
-            auth,
-            user,
-            token,
-        }
+        Self { auth, user, token }
     }
 }

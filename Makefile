@@ -30,6 +30,10 @@ build:
 test:
 	cargo test
 
+## fmt: Format code
+fmt:
+	cargo fmt
+
 ## lint: Run clippy
 lint:
 	cargo clippy -- -D warnings -W clippy::pedantic

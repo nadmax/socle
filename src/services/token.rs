@@ -69,7 +69,6 @@ impl TokenService {
         .map_err(|_| AppError::TokenInvalid)
     }
 
-
     /// Validate a JWT access token and return its claims.
     ///
     /// # Errors

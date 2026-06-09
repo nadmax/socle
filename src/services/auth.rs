@@ -106,10 +106,8 @@ impl AuthService {
     /// - generating the new access token fails
     /// - the underlying database call fails
     pub async fn refresh(&self, raw_refresh_token: &str) -> AppResult<AuthResponse> {
-        let (new_refresh_token, user_id) = self
-            .token
-            .rotate_refresh_token(raw_refresh_token)
-            .await?;
+        let (new_refresh_token, user_id) =
+            self.token.rotate_refresh_token(raw_refresh_token).await?;
 
         let user = self.user.find_by_id(user_id).await?;
 
@@ -117,12 +115,9 @@ impl AuthService {
             return Err(AppError::AccountDisabled);
         }
 
-        let access_token = self.token.generate_access_token(
-            user.id,
-            &user.email,
-            &user.username,
-            user.role,
-        )?;
+        let access_token =
+            self.token
+                .generate_access_token(user.id, &user.email, &user.username, user.role)?;
 
         Ok(AuthResponse {
             access_token,

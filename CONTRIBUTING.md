@@ -27,6 +27,7 @@ All common tasks are wrapped in `make` targets. Run `make help` at any time to s
 | `make build` | Compile a release binary (`--release --locked`) |
 | `make test` | Run the full test suite (unit + integration) |
 | `make lint` | Run `cargo clippy` — all warnings and pedantic lints are errors |
+| `make fmt` | Format code |
 
 ### Database & Migrations
 
