@@ -12,7 +12,20 @@ env:
   SQLX_OFFLINE: true
 
 jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Install Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+
+      - name: Check format
+        run: cargo fmt --check
+
   build_and_test:
+    needs: format
     name: Build & Test
     runs-on: ubuntu-latest
     steps:
