@@ -179,6 +179,17 @@ pub enum OAuthError {
     /// and automatic merging is disabled.
     #[error("account conflict: email '{email}' is already linked to a different account")]
     AccountConflict { email: String },
+
+    /// The provider returned an error response on the callback (e.g. `access_denied`).
+    ///
+    /// This means the user declined consent or the provider rejected the request —
+    /// not a server-side fault.
+    #[error("provider denied authorization: {error} — {detail}")]
+    ProviderDenied { error: String, detail: String },
+
+    /// The provider slug in the URL path did not match any known provider.
+    #[error("unknown OAuth provider: '{0}'")]
+    UnknownProvider(String),
 }
 
 impl OAuthError {
@@ -192,6 +203,8 @@ impl OAuthError {
             Self::InvalidRedirectUri(_) => StatusCode::INTERNAL_SERVER_ERROR,
             Self::StateStore(_) | Self::StateStoreRedis(_) => StatusCode::SERVICE_UNAVAILABLE,
             Self::AccountConflict { .. } => StatusCode::CONFLICT,
+            Self::ProviderDenied { .. } => StatusCode::BAD_REQUEST,
+            Self::UnknownProvider(_) => StatusCode::NOT_FOUND,
         }
     }
 
@@ -207,6 +220,8 @@ impl OAuthError {
             Self::StateStore(_) => "OAUTH_STATE_STORE_UNAVAILABLE",
             Self::StateStoreRedis(_) => "OAUTH_STATE_STORE_ERROR",
             Self::AccountConflict { .. } => "OAUTH_ACCOUNT_CONFLICT",
+            Self::ProviderDenied { .. } => "OAUTH_PROVIDER_DENIED",
+            Self::UnknownProvider(_) => "OAUTH_UNKNOWN_PROVIDER",
         }
     }
 }

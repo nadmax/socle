@@ -290,10 +290,7 @@ fn make_basic_client(
     let (auth_url, token_url) = provider_endpoints(provider);
 
     let client = BasicClient::new(
-        ClientId::new(cfg.client_id.clone()),
-        Some(ClientSecret::new(cfg.client_secret.clone())),
-        oauth2::AuthUrl::new(auth_url.to_owned()).map_err(OAuthError::InvalidRedirectUri)?,
-        Some(oauth2::TokenUrl::new(token_url.to_owned()).map_err(OAuthError::InvalidRedirectUri)?),
+        ClientId::new(cfg.client_id.clone())
     )
     .set_redirect_uri(
         RedirectUrl::new(cfg.redirect_uri.clone()).map_err(OAuthError::InvalidRedirectUri)?,

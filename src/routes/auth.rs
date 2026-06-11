@@ -9,7 +9,7 @@ use serde::Deserialize;
 
 use crate::{
     config::OAuthProvider,
-    errors::{AppError, AppResult},
+    errors::{AppError, AppResult, OAuthError},
     middleware::AuthUser,
     models::{AuthResponse, LoginRequest, MessageResponse, RefreshRequest, RegisterRequest},
     services::oauth,
@@ -159,11 +159,14 @@ pub async fn authorize(
 ) -> AppResult<Redirect> {
     let provider = resolve_provider(&slug)?;
 
-    let provider_cfg = state.config.oauth.provider(provider).ok_or_else(|| {
-        AppError::service_unavailable(format!("OAuth provider '{provider}' is not configured"))
-    })?;
+    let provider_cfg = state
+        .config
+        .oauth
+        .provider(provider)
+        .ok_or(OAuthError::ProviderNotConfigured(provider))?;
 
-    let auth_request = oauth::build_authorization_url(provider, provider_cfg, &state.oauth_store)?;
+    let auth_request =
+        oauth::build_authorization_url(provider, provider_cfg, &state.oauth_store).await?;
 
     tracing::debug!(%provider, "redirecting to OAuth consent screen");
     Ok(Redirect::to(auth_request.url.as_str()))
@@ -226,35 +229,33 @@ pub async fn callback(
             .error_description
             .unwrap_or_else(|| "no detail provided".to_owned());
         tracing::warn!(%error, %detail, "OAuth provider returned an error");
-        return Err(AppError::bad_request(format!(
-            "provider error: {error} — {detail}"
-        )));
+        return Err(OAuthError::ProviderDenied { error, detail }.into());
     }
 
     let code = params
         .code
-        .ok_or_else(|| AppError::bad_request("missing `code` parameter in OAuth callback"))?;
+        .ok_or(OAuthError::InvalidState)?;
     let csrf_state = params
         .state
-        .ok_or_else(|| AppError::bad_request("missing `state` parameter in OAuth callback"))?;
+        .ok_or(OAuthError::InvalidState)?;
+
     let provider = resolve_provider(&slug)?;
-    let provider_cfg = state.config.oauth.provider(provider).ok_or_else(|| {
-        AppError::service_unavailable(format!("OAuth provider '{provider}' is not configured"))
-    })?;
-    let access_token = oauth::exchange_code(
-        provider,
-        provider_cfg,
-        &code,
-        &csrf_state,
-        &state.oauth_store,
-    )
-    .await?;
+
+    let provider_cfg = state
+        .config
+        .oauth
+        .provider(provider)
+        .ok_or(OAuthError::ProviderNotConfigured(provider))?;
+
+    let access_token =
+        oauth::exchange_code(provider, provider_cfg, &code, &csrf_state, &state.oauth_store)
+            .await?;
 
     let profile = oauth::fetch_user_profile(provider, &access_token).await?;
     let response = state.auth.login_or_register_oauth(&profile).await?;
 
     tracing::info!(
-        user_id  = %response.user.id,
+        user_id = %response.user.id,
         %provider,
         "user authenticated via OAuth",
     );
@@ -266,5 +267,5 @@ pub async fn callback(
 /// Resolve a URL path segment to an [`OAuthProvider`], or return `404`.
 fn resolve_provider(slug: &str) -> AppResult<OAuthProvider> {
     OAuthProvider::from_slug(slug)
-        .ok_or_else(|| AppError::not_found(format!("unknown OAuth provider: {slug}")))
+        .ok_or_else(|| AppError::OAuth(OAuthError::UnknownProvider(slug.to_owned())))
 }
