@@ -23,6 +23,57 @@ pub enum Role {
     Admin,
 }
 
+/// How the session was established.
+///
+/// Encoded into the JWT so handlers can enforce an authentication method
+/// without an extra database round-trip.
+///
+/// | Variant    | Issued by                                      |
+/// |------------|------------------------------------------------|
+/// | `password` | `POST /auth/login` (email + password)          |
+/// | `oauth`    | `GET /auth/{provider}/callback` (OAuth 2.0)    |
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "lowercase")]
+pub enum AuthMethod {
+    Password,
+    OAuth,
+}
+
+/// Claims embedded in every access token.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Claims {
+    /// Subject (the user's UUID).
+    pub sub: Uuid,
+
+    /// Issued-at (Unix timestamp seconds).
+    pub iat: u64,
+
+    /// Expiration (Unix timestamp seconds).
+    pub exp: u64,
+
+    pub email: String,
+    pub display_name: String,
+
+    /// Role at the time the token was issued.
+    ///
+    /// If a user's role changes, they must obtain a new access token before
+    /// the new role takes effect (i.e. after the current token expires or on
+    /// the next refresh cycle).
+    pub role: Role,
+
+    /// Authentication method used to issue this token.
+    ///
+    /// Defaults to [`AuthMethod::Password`] so tokens minted before this
+    /// field was introduced continue to deserialise without error — existing
+    /// sessions are not invalidated on deploy.
+    #[serde(default = "default_auth_method")]
+    pub auth_method: AuthMethod,
+}
+
+fn default_auth_method() -> AuthMethod {
+    AuthMethod::Password
+}
+
 impl Role {
     /// Returns `true` if this role is at least as privileged as `required`.
     ///
@@ -163,29 +214,6 @@ pub struct OAuthCredential {
 
     pub created_at: OffsetDateTime,
     pub updated_at: OffsetDateTime,
-}
-
-/// Claims embedded in every access token.
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Claims {
-    /// Subject (the user's UUID)
-    pub sub: Uuid,
-
-    /// Issued-at (Unix timestamp seconds).
-    pub iat: u64,
-
-    /// Expiration (Unix timestamp seconds).
-    pub exp: u64,
-
-    pub email: String,
-    pub display_name: String,
-
-    /// Role at the time the token was issued.
-    ///
-    /// If a user's role changes, they must obtain a new access token before
-    /// the new role takes effect (i.e. after the current token expires or on
-    /// the next refresh cycle).
-    pub role: Role,
 }
 
 /// Payload for `POST /auth/register`.

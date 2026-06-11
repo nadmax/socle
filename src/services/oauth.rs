@@ -1,55 +1,19 @@
 use std::{
     sync::Arc,
-    time::{Duration, Instant},
+    time::Instant,
 };
 
-use dashmap::DashMap;
 use oauth2::{
     AuthorizationCode, ClientId, ClientSecret, CsrfToken, PkceCodeChallenge, PkceCodeVerifier,
-    RedirectUrl, Scope, TokenResponse, basic::BasicClient, reqwest::async_http_client,
+    RedirectUrl, Scope, TokenResponse, basic::BasicClient, reqwest,
 };
-use serde::Deserialize;
-use thiserror::Error;
+use deadpool_redis::{Config as RedisConfig, Pool as RedisPool, Runtime};
+use redis::AsyncCommands;
+use serde::{Deserialize, Serialize};
 use url::Url;
 
 use crate::config::{OAuthProvider, OAuthProviderConfig};
-
-/// Errors that can occur during any stage of the OAuth 2.0 flow.
-#[derive(Debug, Error)]
-pub enum OAuthError {
-    /// The requested provider is not enabled in the server configuration.
-    #[error("OAuth provider '{0}' is not configured")]
-    ProviderNotConfigured(OAuthProvider),
-
-    /// The `state` parameter returned by the provider did not match any pending
-    /// authorisation. Either it expired, was already consumed, or is forged.
-    #[error("invalid or expired OAuth state token")]
-    InvalidState,
-
-    /// The `state` in the callback belongs to a different provider than the
-    /// route that received it — likely a misconfigured redirect URI.
-    #[error("OAuth state provider mismatch: expected {expected}, got {actual}")]
-    ProviderMismatch {
-        expected: OAuthProvider,
-        actual: OAuthProvider,
-    },
-
-    /// The authorisation code could not be exchanged for tokens.
-    #[error("token exchange failed: {0}")]
-    TokenExchange(String),
-
-    /// A network request to the provider's API failed.
-    #[error("provider unreachable: {0}")]
-    ProviderUnreachable(#[from] reqwest::Error),
-
-    /// The provider's user-info response was missing a required field.
-    #[error("incomplete provider profile: missing field '{0}'")]
-    IncompleteProfile(&'static str),
-
-    /// The provider returned a redirect URI that could not be parsed.
-    #[error("invalid redirect URI: {0}")]
-    InvalidRedirectUri(#[from] oauth2::url::ParseError),
-}
+use crate::errors::OAuthError;
 
 /// Data stored server-side while the user is on the provider consent screen.
 struct PendingAuth {
@@ -63,28 +27,50 @@ struct PendingAuth {
     created_at: Instant,
 }
 
-/// Thread-safe, in-memory store for short-lived PKCE/CSRF state tokens.
+/// Serialised form of a pending authorisation, stored as a JSON string in Redis.
 ///
-/// Each entry is keyed by the opaque `state` string that travels to the
-/// provider and back.  Entries older than [`STATE_TTL`] are lazily removed on
-/// the next [`StateStore::take`] call for that key.
-///
-/// For multi-instance deployments replace this with a shared Redis store
-/// (SETNX + EXPIRE) while keeping the same `insert`/`take` interface.
-pub struct StateStore {
-    inner: DashMap<String, PendingAuth>,
+/// Only the fields that need to survive the round-trip are included.
+/// `PkceCodeVerifier` is a newtype over `String` so we store its secret directly.
+#[derive(Serialize, Deserialize)]
+struct StoredPendingAuth {
+    /// The raw PKCE verifier secret.
+    verifier_secret: String,
+    /// Which provider initiated this flow.
+    provider: String,
 }
 
-/// How long a pending authorisation state is considered valid.
-const STATE_TTL: Duration = Duration::from_secs(10 * 60); // 10 minutes
+/// Redis-backed store for short-lived PKCE/CSRF state tokens.
+///
+/// Each entry is keyed by the opaque `state` string that travels to the
+/// provider and back. Keys are set with a TTL of [`STATE_TTL_SECS`] and are
+/// consumed atomically on retrieval, preventing replay attacks.
+///
+/// # Multi-instance behaviour
+///
+/// Because state is stored in Redis rather than process memory, any number of
+/// application replicas can handle the callback for an authorisation that was
+/// initiated on a different instance.
+pub struct StateStore {
+    pool: RedisPool,
+}
+
+/// Lifetime of a pending authorisation entry in Redis (seconds).
+const STATE_TTL_SECS: u64 = 600; // 10 minutes
+
+/// Namespace prefix for all OAuth state keys.
+const KEY_PREFIX: &str = "oauth_state:";
+
 
 impl StateStore {
-    /// Create an empty store.
-    #[must_use]
-    pub fn new() -> Self {
-        Self {
-            inner: DashMap::new(),
-        }
+    /// Construct a [`StateStore`] from a Redis connection URL.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the URL is invalid or the pool cannot be created.
+    pub fn new(redis_url: &str) -> Result<Self, deadpool_redis::CreatePoolError> {
+        let cfg = RedisConfig::from_url(redis_url);
+        let pool = cfg.create_pool(Some(Runtime::Tokio1))?;
+        Ok(Self { pool })
     }
 
     /// Wrap in an [`Arc`] for sharing across Axum handler clones.
@@ -93,36 +79,70 @@ impl StateStore {
         Arc::new(self)
     }
 
-    /// Insert a new pending auth entry, keyed by `state`.
-    fn insert(&self, state: String, provider: OAuthProvider, verifier: PkceCodeVerifier) {
-        self.inner.insert(
-            state,
-            PendingAuth {
-                verifier,
-                provider,
-                created_at: Instant::now(),
-            },
-        );
+    /// Persist a pending auth entry with a TTL.
+    ///
+    /// # Errors
+    ///
+    /// Returns an [`OAuthError`] if the Redis connection or write fails.
+    pub async fn insert(
+        &self,
+        state: &str,
+        provider: OAuthProvider,
+        verifier: PkceCodeVerifier,
+    ) -> Result<(), OAuthError> {
+        let payload = serde_json::to_string(&StoredPendingAuth {
+            verifier_secret: verifier.secret().clone(),
+            provider: provider.to_string(),
+        })
+        // StoredPendingAuth only contains String fields; serialisation cannot fail.
+        .expect("StoredPendingAuth serialisation is infallible");
+
+        let key = format!("{KEY_PREFIX}{state}");
+        let mut conn = self.pool.get().await.map_err(OAuthError::StateStore)?;
+        conn.set_ex::<_, _, ()>(&key, payload, STATE_TTL_SECS)
+            .await
+            .map_err(OAuthError::StateStoreRedis)?;
+
+        Ok(())
     }
 
-    /// Remove and return the entry for `state`, or `None` if missing or expired.
+    /// Atomically retrieve and delete the entry for `state`.
     ///
-    /// Consuming the entry prevents replay attacks: a valid callback URL cannot
-    /// be reused even if intercepted.
-    fn take(&self, state: &str) -> Option<PendingAuth> {
-        let (_, entry) = self.inner.remove(state)?;
+    /// Returns `None` when the key is absent (never existed, already consumed,
+    /// or expired). The atomic GETDEL ensures a valid callback URL cannot be
+    /// replayed even if observed in browser history or server logs.
+    ///
+    /// # Errors
+    ///
+    /// Returns an [`OAuthError`] if the Redis connection fails or the stored
+    /// value cannot be deserialised.
+    pub async fn take(
+        &self,
+        state: &str,
+        expected_provider: OAuthProvider,
+    ) -> Result<PkceCodeVerifier, OAuthError> {
+        let key = format!("{KEY_PREFIX}{state}");
+        let mut conn = self.pool.get().await.map_err(OAuthError::StateStore)?;
 
-        if entry.created_at.elapsed() > STATE_TTL {
-            return None;
+        // GETDEL atomically returns the value and removes the key in one round-trip.
+        // Available since Redis 6.2; for older Redis use a MULTI/EXEC pipeline.
+        let raw: Option<String> = conn
+            .get_del(&key)
+            .await
+            .map_err(OAuthError::StateStoreRedis)?;
+        let raw = raw.ok_or(OAuthError::InvalidState)?;
+        let stored: StoredPendingAuth =
+            serde_json::from_str(&raw).map_err(|_| OAuthError::InvalidState)?;
+        let actual = OAuthProvider::from_slug(&stored.provider)
+            .ok_or(OAuthError::InvalidState)?;
+        if actual != expected_provider {
+            return Err(OAuthError::ProviderMismatch {
+                expected: expected_provider,
+                actual,
+            });
         }
 
-        Some(entry)
-    }
-}
-
-impl Default for StateStore {
-    fn default() -> Self {
-        Self::new()
+        Ok(PkceCodeVerifier::new(stored.verifier_secret))
     }
 }
 
@@ -192,13 +212,12 @@ pub struct AuthorizationRequest {
 ///
 /// Returns [`OAuthError::ProviderNotConfigured`] if `provider_cfg` is `None`,
 /// or [`OAuthError::InvalidRedirectUri`] if the stored redirect URI is malformed.
-pub fn build_authorization_url(
+pub async fn build_authorization_url(
     provider: OAuthProvider,
     provider_cfg: &OAuthProviderConfig,
     store: &StateStore,
 ) -> Result<AuthorizationRequest, OAuthError> {
     let client = make_basic_client(provider, provider_cfg)?;
-
     let (pkce_challenge, pkce_verifier) = PkceCodeChallenge::new_random_sha256();
 
     let (url, csrf_token) = client
@@ -208,7 +227,7 @@ pub fn build_authorization_url(
         .url();
 
     let state_key = csrf_token.secret().clone();
-    store.insert(state_key.clone(), provider, pkce_verifier);
+    store.insert(&state_key, provider, pkce_verifier).await?;
 
     Ok(AuthorizationRequest { url, state_key })
 }
@@ -232,20 +251,11 @@ pub async fn exchange_code(
     state: &str,
     store: &StateStore,
 ) -> Result<String, OAuthError> {
-    let pending = store.take(state).ok_or(OAuthError::InvalidState)?;
-
-    if pending.provider != provider {
-        return Err(OAuthError::ProviderMismatch {
-            expected: provider,
-            actual: pending.provider,
-        });
-    }
-
+    let verifier = store.take(state, provider).await?;
     let client = make_basic_client(provider, provider_cfg)?;
-
     let token_result = client
         .exchange_code(AuthorizationCode::new(code.to_owned()))
-        .set_pkce_verifier(pending.verifier)
+        .set_pkce_verifier(verifier)
         .request_async(async_http_client)
         .await
         .map_err(|e| OAuthError::TokenExchange(e.to_string()))?;

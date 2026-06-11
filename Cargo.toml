@@ -17,6 +17,7 @@ argon2 = "0.5.3"
 hex = "0.4.3"
 axum = "0.8.9"
 dashmap = "6.2.1"
+deadpool-redis = "0.23.0"
 dotenvy = "0.15.7"
 envy = "0.4.2"
 jsonwebtoken = { version = "10.4.0", default-features = false, features = [
@@ -24,6 +25,7 @@ jsonwebtoken = { version = "10.4.0", default-features = false, features = [
 ] }
 getrandom = "0.4.2"
 oauth2 = "5.0.0"
+redis = "1.2.2"
 reqwest = { version = "0.13.4", features = ["json"] }
 serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.150"
