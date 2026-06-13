@@ -5,7 +5,7 @@ use std::{
 
 use oauth2::{
     AuthorizationCode, ClientId, ClientSecret, CsrfToken, PkceCodeChallenge, PkceCodeVerifier,
-    RedirectUrl, Scope, TokenResponse, basic::BasicClient, reqwest,
+    RedirectUrl, Scope, TokenResponse, basic::BasicClient
 };
 use deadpool_redis::{Config as RedisConfig, Pool as RedisPool, Runtime};
 use redis::AsyncCommands;
@@ -217,10 +217,21 @@ pub async fn build_authorization_url(
     provider_cfg: &OAuthProviderConfig,
     store: &StateStore,
 ) -> Result<AuthorizationRequest, OAuthError> {
-    let client = make_basic_client(provider, provider_cfg)?;
+    let (auth_url, token_url) = provider_endpoints(provider);
     let (pkce_challenge, pkce_verifier) = PkceCodeChallenge::new_random_sha256();
 
-    let (url, csrf_token) = client
+    let (url, csrf_token) = BasicClient::new(ClientId::new(provider_cfg.client_id.clone()))
+        .set_client_secret(ClientSecret::new(provider_cfg.client_secret.clone()))
+        .set_auth_uri(
+            oauth2::AuthUrl::new(auth_url.to_owned()).map_err(OAuthError::InvalidRedirectUri)?,
+        )
+        .set_token_uri(
+            oauth2::TokenUrl::new(token_url.to_owned()).map_err(OAuthError::InvalidRedirectUri)?,
+        )
+        .set_redirect_uri(
+            RedirectUrl::new(provider_cfg.redirect_uri.clone())
+                .map_err(OAuthError::InvalidRedirectUri)?,
+        )
         .authorize_url(CsrfToken::new_random)
         .add_scopes(provider_scopes(provider))
         .set_pkce_challenge(pkce_challenge)
@@ -229,10 +240,10 @@ pub async fn build_authorization_url(
     let state_key = csrf_token.secret().clone();
     store.insert(&state_key, provider, pkce_verifier).await?;
 
-    Ok(AuthorizationRequest { url, state_key })
+    Ok(AuthorizationRequest { url, state_key: state_key.to_owned() })
 }
 
-/// Exchange an authorisation code for an access token.
+/// Exchange an authorization code for an access token.
 ///
 /// Validates the `state` against the [`StateStore`] (CSRF + PKCE) and
 /// returns the raw access token on success.  The state entry is consumed so
@@ -251,12 +262,27 @@ pub async fn exchange_code(
     state: &str,
     store: &StateStore,
 ) -> Result<String, OAuthError> {
+    let (_, token_url) = provider_endpoints(provider);
     let verifier = store.take(state, provider).await?;
-    let client = make_basic_client(provider, provider_cfg)?;
-    let token_result = client
+    let http_client = oauth2::reqwest::Client::new();
+
+    let token_result = BasicClient::new(ClientId::new(provider_cfg.client_id.clone()))
+        .set_client_secret(ClientSecret::new(provider_cfg.client_secret.clone()))
+        .set_auth_uri(
+            oauth2::AuthUrl::new("https://placeholder.invalid".to_owned())
+                .expect("placeholder auth URL is valid"),
+        )
+        .set_token_uri(
+            oauth2::TokenUrl::new(token_url.to_owned())
+                .map_err(OAuthError::InvalidRedirectUri)?,
+        )
+        .set_redirect_uri(
+            RedirectUrl::new(provider_cfg.redirect_uri.clone())
+                .map_err(OAuthError::InvalidRedirectUri)?,
+        )
         .exchange_code(AuthorizationCode::new(code.to_owned()))
         .set_pkce_verifier(verifier)
-        .request_async(async_http_client)
+        .request_async(&http_client)
         .await
         .map_err(|e| OAuthError::TokenExchange(e.to_string()))?;
 
@@ -280,23 +306,6 @@ pub async fn fetch_user_profile(
         OAuthProvider::Google => fetch_google_profile(access_token).await,
         OAuthProvider::GitHub => fetch_github_profile(access_token).await,
     }
-}
-
-/// Construct an [`oauth2::basic::BasicClient`] from stored config.
-fn make_basic_client(
-    provider: OAuthProvider,
-    cfg: &OAuthProviderConfig,
-) -> Result<BasicClient, OAuthError> {
-    let (auth_url, token_url) = provider_endpoints(provider);
-
-    let client = BasicClient::new(
-        ClientId::new(cfg.client_id.clone())
-    )
-    .set_redirect_uri(
-        RedirectUrl::new(cfg.redirect_uri.clone()).map_err(OAuthError::InvalidRedirectUri)?,
-    );
-
-    Ok(client)
 }
 
 /// Static provider endpoints. Extending to a third provider means adding one
@@ -334,10 +343,13 @@ async fn fetch_google_profile(access_token: &str) -> Result<OAuthProfile, OAuthE
         .get("https://www.googleapis.com/oauth2/v3/userinfo")
         .bearer_auth(access_token)
         .send()
-        .await?
-        .error_for_status()?
+        .await
+        .map_err(|e| OAuthError::ProviderUnreachable(e.to_string()))?
+        .error_for_status()
+        .map_err(|e| OAuthError::ProviderUnreachable(e.to_string()))?
         .json()
-        .await?;
+        .await
+        .map_err(|e| OAuthError::ProviderUnreachable(e.to_string()))?;
 
     Ok(OAuthProfile {
         provider: OAuthProvider::Google,
@@ -356,10 +368,13 @@ async fn fetch_github_profile(access_token: &str) -> Result<OAuthProfile, OAuthE
         .bearer_auth(access_token)
         .header(reqwest::header::USER_AGENT, "your-app-name")
         .send()
-        .await?
-        .error_for_status()?
+        .await
+        .map_err(|e| OAuthError::ProviderUnreachable(e.to_string()))?
+        .error_for_status()
+        .map_err(|e| OAuthError::ProviderUnreachable(e.to_string()))?
         .json()
-        .await?;
+        .await
+        .map_err(|e| OAuthError::ProviderUnreachable(e.to_string()))?;
 
     let email = match info.email {
         Some(e) => e,
@@ -375,6 +390,7 @@ async fn fetch_github_profile(access_token: &str) -> Result<OAuthProfile, OAuthE
     })
 }
 
+
 /// Fetch the primary verified email from GitHub's `/user/emails` endpoint.
 ///
 /// This is a separate request; it is only made when the public profile omits
@@ -388,10 +404,13 @@ async fn fetch_github_primary_email(
         .bearer_auth(access_token)
         .header(reqwest::header::USER_AGENT, "your-app-name")
         .send()
-        .await?
-        .error_for_status()?
+        .await
+        .map_err(|e| OAuthError::ProviderUnreachable(e.to_string()))?
+        .error_for_status()
+        .map_err(|e| OAuthError::ProviderUnreachable(e.to_string()))?
         .json()
-        .await?;
+        .await
+        .map_err(|e| OAuthError::ProviderUnreachable(e.to_string()))?;
 
     emails
         .into_iter()

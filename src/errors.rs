@@ -153,7 +153,7 @@ pub enum OAuthError {
 
     /// A network request to the provider's API failed.
     #[error("provider unreachable: {0}")]
-    ProviderUnreachable(#[from] reqwest::Error),
+    ProviderUnreachable(String),
 
     /// The provider's user-info response was missing a required field.
     #[error("incomplete provider profile: missing field '{0}'")]

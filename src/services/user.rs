@@ -128,7 +128,7 @@ impl UserService {
         )
         .fetch_one(&mut *tx)
         .await
-        .map_err(|err| map_constraint_err(&err, "users_email_key", AppError::EmailTaken))?;
+        .map_err(|err| map_constraint_err(err, "users_email_key", AppError::EmailTaken))?;
 
         let credential = sqlx::query_as!(
             LocalCredential,
@@ -144,7 +144,7 @@ impl UserService {
         .fetch_one(&mut *tx)
         .await
         .map_err(|err| {
-            map_constraint_err(&err, "local_credentials_username_key", AppError::UsernameTaken)
+            map_constraint_err(err, "local_credentials_username_key", AppError::UsernameTaken)
         })?;
 
         tx.commit().await?;
@@ -183,7 +183,7 @@ impl UserService {
         )
         .fetch_one(&self.pool)
         .await
-        .map_err(|err| map_constraint_err(&err, "users_email_key", AppError::EmailTaken))
+        .map_err(|err| map_constraint_err(err, "users_email_key", AppError::EmailTaken))
     }
 
     /// Update the stored password hash after verifying the current password.
@@ -324,7 +324,7 @@ impl UserService {
 
 /// Map a Postgres unique-constraint violation to a specific [`AppError`];
 /// fall through to [`AppError::Database`] for any other error.
-fn map_constraint_err(err: &sqlx::Error, constraint: &str, mapped: AppError) -> AppError {
+fn map_constraint_err(err: sqlx::Error, constraint: &str, mapped: AppError) -> AppError {
     if let sqlx::Error::Database(ref db_err) = err {
         if db_err.code().as_deref() == Some("23505")
             && db_err.message().contains(constraint)
@@ -332,5 +332,5 @@ fn map_constraint_err(err: &sqlx::Error, constraint: &str, mapped: AppError) -> 
             return mapped;
         }
     }
-    AppError::Database(err.clone())
+    AppError::Database(err)
 }
