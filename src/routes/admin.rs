@@ -47,7 +47,9 @@ pub async fn update_user_role(
     Json(req): Json<UpdateRoleRequest>,
 ) -> AppResult<Json<UserResponse>> {
     let svc = AdminService::new(&state.user);
-    let user = svc.update_user_role(claims.sub, target_id, req.role).await?;
+    let user = svc
+        .update_user_role(claims.sub, target_id, req.role)
+        .await?;
 
     let credential = state.user.find_local_credential(user.id).await?;
 

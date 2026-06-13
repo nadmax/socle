@@ -144,7 +144,11 @@ impl UserService {
         .fetch_one(&mut *tx)
         .await
         .map_err(|err| {
-            map_constraint_err(err, "local_credentials_username_key", AppError::UsernameTaken)
+            map_constraint_err(
+                err,
+                "local_credentials_username_key",
+                AppError::UsernameTaken,
+            )
         })?;
 
         tx.commit().await?;
@@ -331,9 +335,7 @@ impl UserService {
 /// fall through to [`AppError::Database`] for any other error.
 fn map_constraint_err(err: sqlx::Error, constraint: &str, mapped: AppError) -> AppError {
     if let sqlx::Error::Database(ref db_err) = err {
-        if db_err.code().as_deref() == Some("23505")
-            && db_err.message().contains(constraint)
-        {
+        if db_err.code().as_deref() == Some("23505") && db_err.message().contains(constraint) {
             return mapped;
         }
     }

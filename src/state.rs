@@ -30,6 +30,12 @@ impl AppState {
         config: Config,
         oauth_store: Arc<StateStore>,
     ) -> Self {
-        Self { auth, user, token, config, oauth_store }
+        Self {
+            auth,
+            user,
+            token,
+            config,
+            oauth_store,
+        }
     }
 }

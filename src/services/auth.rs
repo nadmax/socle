@@ -21,7 +21,11 @@ pub struct AuthService {
 impl AuthService {
     #[must_use]
     pub fn new(user: UserService, token: TokenService, config: Config) -> Self {
-        Self { user, token, config }
+        Self {
+            user,
+            token,
+            config,
+        }
     }
 
     /// Register a new account with a local credential and immediately issue tokens.
@@ -41,12 +45,21 @@ impl AuthService {
 
         // Use email prefix as display_name on registration; users can update it later.
         let display_name = email.split('@').next().unwrap_or(username);
-        let (user, credential) = self.user.create(email, display_name, username, password).await?;
+        let (user, credential) = self
+            .user
+            .create(email, display_name, username, password)
+            .await?;
 
         self.issue_tokens(
-            user.id, &user.email.clone(), &user.display_name.clone(), user.role,
+            user.id,
+            &user.email.clone(),
+            &user.display_name.clone(),
+            user.role,
             AuthMethod::Password,
-            UserView { user, local_credential: Some(credential) },
+            UserView {
+                user,
+                local_credential: Some(credential),
+            },
         )
         .await
     }
@@ -82,9 +95,15 @@ impl AuthService {
         }
 
         self.issue_tokens(
-            user.id, &user.email.clone(), &user.display_name.clone(), user.role,
+            user.id,
+            &user.email.clone(),
+            &user.display_name.clone(),
+            user.role,
             AuthMethod::Password,
-            UserView { user, local_credential: Some(credential) },
+            UserView {
+                user,
+                local_credential: Some(credential),
+            },
         )
         .await
     }
@@ -115,14 +134,21 @@ impl AuthService {
         };
 
         let access_token = self.token.generate_access_token(
-            user.id, &user.email, &user.display_name, user.role, auth_method,
+            user.id,
+            &user.email,
+            &user.display_name,
+            user.role,
+            auth_method,
         )?;
 
         Ok(AuthResponse {
             access_token,
             refresh_token: new_refresh_token,
             expires_in: self.config.access_token_expiry_secs,
-            user: UserResponse::from(UserView { user, local_credential: credential }),
+            user: UserResponse::from(UserView {
+                user,
+                local_credential: credential,
+            }),
         })
     }
 
@@ -153,7 +179,11 @@ impl AuthService {
         } else {
             let u = match self.user.find_by_email(&profile.email).await? {
                 Some(existing) => existing,
-                None => self.user.create_from_oauth(&profile.email, profile.display_name.as_deref()).await?,
+                None => {
+                    self.user
+                        .create_from_oauth(&profile.email, profile.display_name.as_deref())
+                        .await?
+                }
             };
             self.user.link_oauth_account(u.id, profile).await?;
             u
@@ -168,9 +198,15 @@ impl AuthService {
         let credential = self.user.find_local_credential(user.id).await?;
 
         self.issue_tokens(
-            user.id, &user.email.clone(), &user.display_name.clone(), user.role,
+            user.id,
+            &user.email.clone(),
+            &user.display_name.clone(),
+            user.role,
             AuthMethod::OAuth,
-            UserView { user, local_credential: credential },
+            UserView {
+                user,
+                local_credential: credential,
+            },
         )
         .await
     }
@@ -184,9 +220,9 @@ impl AuthService {
         auth_method: AuthMethod,
         user_view: UserView,
     ) -> AppResult<AuthResponse> {
-        let access_token = self
-            .token
-            .generate_access_token(user_id, email, display_name, role, auth_method)?;
+        let access_token =
+            self.token
+                .generate_access_token(user_id, email, display_name, role, auth_method)?;
 
         let refresh_token = self.token.create_refresh_token(user_id).await?;
 

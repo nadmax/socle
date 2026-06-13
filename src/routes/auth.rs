@@ -232,12 +232,8 @@ pub async fn callback(
         return Err(OAuthError::ProviderDenied { error, detail }.into());
     }
 
-    let code = params
-        .code
-        .ok_or(OAuthError::InvalidState)?;
-    let csrf_state = params
-        .state
-        .ok_or(OAuthError::InvalidState)?;
+    let code = params.code.ok_or(OAuthError::InvalidState)?;
+    let csrf_state = params.state.ok_or(OAuthError::InvalidState)?;
 
     let provider = resolve_provider(&slug)?;
 
@@ -247,9 +243,14 @@ pub async fn callback(
         .provider(provider)
         .ok_or(OAuthError::ProviderNotConfigured(provider))?;
 
-    let access_token =
-        oauth::exchange_code(provider, provider_cfg, &code, &csrf_state, &state.oauth_store)
-            .await?;
+    let access_token = oauth::exchange_code(
+        provider,
+        provider_cfg,
+        &code,
+        &csrf_state,
+        &state.oauth_store,
+    )
+    .await?;
 
     let profile = oauth::fetch_user_profile(provider, &access_token).await?;
     let response = state.auth.login_or_register_oauth(&profile).await?;

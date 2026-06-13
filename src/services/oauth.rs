@@ -1,10 +1,10 @@
 use std::sync::Arc;
 
+use deadpool_redis::{Config as RedisConfig, Pool as RedisPool, Runtime};
 use oauth2::{
     AuthorizationCode, ClientId, ClientSecret, CsrfToken, PkceCodeChallenge, PkceCodeVerifier,
-    RedirectUrl, Scope, TokenResponse, basic::BasicClient
+    RedirectUrl, Scope, TokenResponse, basic::BasicClient,
 };
-use deadpool_redis::{Config as RedisConfig, Pool as RedisPool, Runtime};
 use redis::AsyncCommands;
 use serde::{Deserialize, Serialize};
 use url::Url;
@@ -44,7 +44,6 @@ const STATE_TTL_SECS: u64 = 600; // 10 minutes
 
 /// Namespace prefix for all OAuth state keys.
 const KEY_PREFIX: &str = "oauth_state:";
-
 
 impl StateStore {
     /// Construct a [`StateStore`] from a Redis connection URL.
@@ -118,8 +117,7 @@ impl StateStore {
         let raw = raw.ok_or(OAuthError::InvalidState)?;
         let stored: StoredPendingAuth =
             serde_json::from_str(&raw).map_err(|_| OAuthError::InvalidState)?;
-        let actual = OAuthProvider::from_slug(&stored.provider)
-            .ok_or(OAuthError::InvalidState)?;
+        let actual = OAuthProvider::from_slug(&stored.provider).ok_or(OAuthError::InvalidState)?;
         if actual != expected_provider {
             return Err(OAuthError::ProviderMismatch {
                 expected: expected_provider,
@@ -225,7 +223,10 @@ pub async fn build_authorization_url(
     let state_key = csrf_token.secret().clone();
     store.insert(&state_key, provider, pkce_verifier).await?;
 
-    Ok(AuthorizationRequest { url, state_key: state_key.to_owned() })
+    Ok(AuthorizationRequest {
+        url,
+        state_key: state_key.to_owned(),
+    })
 }
 
 /// Exchange an authorization code for an access token.
@@ -258,8 +259,7 @@ pub async fn exchange_code(
                 .expect("placeholder auth URL is valid"),
         )
         .set_token_uri(
-            oauth2::TokenUrl::new(token_url.to_owned())
-                .map_err(OAuthError::InvalidRedirectUri)?,
+            oauth2::TokenUrl::new(token_url.to_owned()).map_err(OAuthError::InvalidRedirectUri)?,
         )
         .set_redirect_uri(
             RedirectUrl::new(provider_cfg.redirect_uri.clone())
@@ -374,7 +374,6 @@ async fn fetch_github_profile(access_token: &str) -> Result<OAuthProfile, OAuthE
         avatar_url: info.avatar_url,
     })
 }
-
 
 /// Fetch the primary verified email from GitHub's `/user/emails` endpoint.
 ///

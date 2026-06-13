@@ -12,10 +12,10 @@ use utoipa::openapi::security::{Http, HttpAuthScheme, SecurityScheme};
 use utoipa::{Modify, OpenApi};
 use utoipa_swagger_ui::SwaggerUi;
 
+use crate::services::oauth::StateStore;
 use config::Config;
 use services::{auth::AuthService, token::TokenService, user::UserService};
 use state::AppState;
-use crate::services::oauth::StateStore;
 
 #[derive(OpenApi)]
 #[openapi(
