@@ -29,6 +29,8 @@ use crate::services::oauth::StateStore;
         routes::auth::login,
         routes::auth::refresh,
         routes::auth::logout,
+        routes::auth::authorize,
+        routes::auth::callback,
         routes::users::get_me,
         routes::users::change_password,
         routes::users::deactivate_account,
@@ -50,7 +52,7 @@ use crate::services::oauth::StateStore;
     ),
     modifiers(&BearerSecurityAddon),
     tags(
-        (name = "auth",  description = "Register / login / refresh / logout"),
+        (name = "auth",  description = "Authentication operations"),
         (name = "users", description = "Authenticated user operations"),
         (name = "admin", description = "Admin-only operations (requires admin role)"),
         (name = "system", description = "Liveness and infrastructure endpoints"),

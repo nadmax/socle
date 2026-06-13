@@ -133,7 +133,7 @@ pub async fn logout(
 
 /// Redirect the user to the provider's consent screen.
 ///
-/// Resolves the provider slug, builds the PKCE authorisation URL, and issues a
+/// Resolves the provider slug, builds the PKCE authorization URL, and issues a
 /// `302 Found` to the provider. The PKCE verifier and CSRF state are stored
 /// server-side in [`AppState::oauth_store`] until the callback arrives.
 ///
@@ -175,7 +175,7 @@ pub async fn authorize(
 /// Query parameters echoed back by the provider on the callback redirect.
 #[derive(Debug, Deserialize)]
 pub struct CallbackParams {
-    /// The authorisation code to exchange for tokens.
+    /// The authorization code to exchange for tokens.
     code: Option<String>,
     /// The opaque CSRF state token that was round-tripped through the provider.
     state: Option<String>,
@@ -190,7 +190,7 @@ pub struct CallbackParams {
 /// Steps:
 /// 1. Surface any provider-reported error (e.g. `access_denied`) immediately.
 /// 2. Validate the CSRF `state` and consume the stored PKCE verifier.
-/// 3. Exchange the authorisation code for a provider access token.
+/// 3. Exchange the authorization code for a provider access token.
 /// 4. Fetch and normalise the user profile.
 /// 5. Find or create a local account and link the `OAuthAccount` relation.
 /// 6. Issue an application JWT using the existing `services/token` logic.
@@ -206,7 +206,7 @@ pub struct CallbackParams {
     tag  = "auth",
     params(
         ("provider"          = String, Path,  description = "OAuth provider slug"),
-        ("code"              = String, Query, description = "Authorisation code from the provider"),
+        ("code"              = String, Query, description = "Authorization code from the provider"),
         ("state"             = String, Query, description = "CSRF state token"),
         ("error"             = Option<String>, Query, description = "Provider error code, if any"),
         ("error_description" = Option<String>, Query, description = "Provider error detail, if any"),

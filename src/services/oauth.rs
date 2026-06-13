@@ -12,7 +12,7 @@ use url::Url;
 use crate::config::{OAuthProvider, OAuthProviderConfig};
 use crate::errors::OAuthError;
 
-/// Serialised form of a pending authorisation, stored as a JSON string in Redis.
+/// Serialised form of a pending authorization, stored as a JSON string in Redis.
 ///
 /// Only the fields that need to survive the round-trip are included.
 /// `PkceCodeVerifier` is a newtype over `String` so we store its secret directly.
@@ -33,13 +33,13 @@ struct StoredPendingAuth {
 /// # Multi-instance behaviour
 ///
 /// Because state is stored in Redis rather than process memory, any number of
-/// application replicas can handle the callback for an authorisation that was
+/// application replicas can handle the callback for an authorization that was
 /// initiated on a different instance.
 pub struct StateStore {
     pool: RedisPool,
 }
 
-/// Lifetime of a pending authorisation entry in Redis (seconds).
+/// Lifetime of a pending authorization entry in Redis (seconds).
 const STATE_TTL_SECS: u64 = 600; // 10 minutes
 
 /// Namespace prefix for all OAuth state keys.

@@ -134,7 +134,7 @@ pub enum OAuthError {
     ProviderNotConfigured(OAuthProvider),
 
     /// The `state` parameter returned by the provider did not match any
-    /// pending authorisation. Either it expired, was already consumed, or
+    /// pending authorization. Either it expired, was already consumed, or
     /// is forged.
     #[error("invalid or expired OAuth state token")]
     InvalidState,
@@ -147,7 +147,7 @@ pub enum OAuthError {
         actual: OAuthProvider,
     },
 
-    /// The authorisation code could not be exchanged for tokens.
+    /// The authorization code could not be exchanged for tokens.
     #[error("token exchange failed: {0}")]
     TokenExchange(String),
 
