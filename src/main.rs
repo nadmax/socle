@@ -15,6 +15,7 @@ use utoipa_swagger_ui::SwaggerUi;
 use config::Config;
 use services::{auth::AuthService, token::TokenService, user::UserService};
 use state::AppState;
+use crate::services::oauth::StateStore;
 
 #[derive(OpenApi)]
 #[openapi(
@@ -99,7 +100,10 @@ async fn main() -> anyhow::Result<()> {
     let user = UserService::new(pool.clone());
     let token = TokenService::new(pool.clone(), config.clone());
     let auth = AuthService::new(user.clone(), token.clone(), config.clone());
-    let state = AppState::new(auth, user, token);
+    let oauth_store = StateStore::new(&config.redis_url)
+        .expect("failed to create OAuth state store")
+        .shared();
+    let state = AppState::new(auth, user, token, config.clone(), oauth_store);
     let app = Router::new()
         .route("/health", get(health))
         .merge(routes::auth::router())

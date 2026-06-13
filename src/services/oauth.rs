@@ -1,7 +1,4 @@
-use std::{
-    sync::Arc,
-    time::Instant,
-};
+use std::sync::Arc;
 
 use oauth2::{
     AuthorizationCode, ClientId, ClientSecret, CsrfToken, PkceCodeChallenge, PkceCodeVerifier,
@@ -14,18 +11,6 @@ use url::Url;
 
 use crate::config::{OAuthProvider, OAuthProviderConfig};
 use crate::errors::OAuthError;
-
-/// Data stored server-side while the user is on the provider consent screen.
-struct PendingAuth {
-    /// PKCE verifier — must be presented on the callback to prove the
-    /// authorisation request originated here.
-    verifier: PkceCodeVerifier,
-    /// Which provider initiated this flow; validated in the callback to prevent
-    /// cross-provider state reuse.
-    provider: OAuthProvider,
-    /// Wall-clock instant the entry was inserted; used for expiry sweeps.
-    created_at: Instant,
-}
 
 /// Serialised form of a pending authorisation, stored as a JSON string in Redis.
 ///

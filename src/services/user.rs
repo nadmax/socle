@@ -277,16 +277,19 @@ impl UserService {
         provider: OAuthProvider,
         provider_user_id: &str,
     ) -> AppResult<Option<User>> {
+        let provider_db = crate::models::Provider::from(provider);
+
         sqlx::query_as!(
             User,
             r#"
             SELECT u.id, u.email, u.display_name,
-                   u.role AS "role: Role", u.is_active, u.created_at, u.updated_at
+                u.role AS "role: Role",
+                u.is_active, u.created_at, u.updated_at
             FROM oauth_credentials oc
             JOIN users u ON u.id = oc.user_id
             WHERE oc.provider = $1 AND oc.provider_user_id = $2
             "#,
-            provider.to_string(),
+            provider_db as crate::models::Provider,
             provider_user_id,
         )
         .fetch_optional(&self.pool)
@@ -304,6 +307,8 @@ impl UserService {
     ///
     /// Returns an [`AppError`] if the database upsert fails.
     pub async fn link_oauth_account(&self, user_id: Uuid, profile: &OAuthProfile) -> AppResult<()> {
+        let provider_db = crate::models::Provider::from(profile.provider);
+
         sqlx::query!(
             r#"
             INSERT INTO oauth_credentials (id, user_id, provider, provider_user_id)
@@ -312,7 +317,7 @@ impl UserService {
             "#,
             Uuid::now_v7(),
             user_id,
-            profile.provider.to_string(),
+            provider_db as crate::models::Provider,
             profile.provider_user_id,
         )
         .execute(&self.pool)

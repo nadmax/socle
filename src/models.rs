@@ -106,6 +106,15 @@ pub enum Provider {
     GitHub,
 }
 
+impl From<crate::config::OAuthProvider> for Provider {
+    fn from(p: crate::config::OAuthProvider) -> Self {
+        match p {
+            crate::config::OAuthProvider::Google => Provider::Google,
+            crate::config::OAuthProvider::GitHub => Provider::GitHub,
+        }
+    }
+}
+
 /// Canonical user row — pure identity, no credential data.
 ///
 /// A `User` row is created once and never holds authentication secrets.
