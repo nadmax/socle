@@ -49,7 +49,9 @@ impl Config {
     /// cannot be deserialized into the expected types.
     pub fn from_env() -> Result<Self, envy::Error> {
         let _ = dotenvy::dotenv();
-        envy::from_env()
+        let mut config: Config = envy::from_env()?;
+        config.oauth = OAuthConfig::from_env();
+        Ok(config)
     }
 }
 
@@ -93,6 +95,40 @@ impl OAuthConfig {
             OAuthProvider::Google => self.google.as_ref(),
             OAuthProvider::GitHub => self.github.as_ref(),
         }
+    }
+
+    fn from_env() -> Self {
+        let google = match (
+            std::env::var("OAUTH_GOOGLE_CLIENT_ID").ok(),
+            std::env::var("OAUTH_GOOGLE_CLIENT_SECRET").ok(),
+            std::env::var("OAUTH_GOOGLE_REDIRECT_URI").ok(),
+        ) {
+            (Some(client_id), Some(client_secret), Some(redirect_uri)) => {
+                Some(OAuthProviderConfig {
+                    client_id,
+                    client_secret,
+                    redirect_uri,
+                })
+            }
+            _ => None,
+        };
+
+        let github = match (
+            std::env::var("OAUTH_GITHUB_CLIENT_ID").ok(),
+            std::env::var("OAUTH_GITHUB_CLIENT_SECRET").ok(),
+            std::env::var("OAUTH_GITHUB_REDIRECT_URI").ok(),
+        ) {
+            (Some(client_id), Some(client_secret), Some(redirect_uri)) => {
+                Some(OAuthProviderConfig {
+                    client_id,
+                    client_secret,
+                    redirect_uri,
+                })
+            }
+            _ => None,
+        };
+
+        Self { google, github }
     }
 }
 
