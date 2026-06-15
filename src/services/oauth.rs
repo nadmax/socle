@@ -220,9 +220,7 @@ pub async fn build_authorization_url(
     let state_key = csrf_token.secret().clone();
     store.insert(&state_key, provider, pkce_verifier).await?;
 
-    Ok(AuthorizationRequest {
-        url,
-    })
+    Ok(AuthorizationRequest { url })
 }
 
 /// Exchange an authorization code for an access token.

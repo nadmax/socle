@@ -4,7 +4,7 @@ use uuid::Uuid;
 use crate::{
     config::OAuthProvider,
     errors::{AppError, AppResult},
-    models::{OAuthConnection, LocalCredential, Role, User},
+    models::{LocalCredential, OAuthConnection, Role, User},
     services::oauth::OAuthProfile,
     services::token::hash_password,
 };

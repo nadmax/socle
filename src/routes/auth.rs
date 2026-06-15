@@ -3,7 +3,7 @@ use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
     response::Redirect,
-    routing::{get, post, delete},
+    routing::{delete, get, post},
 };
 use serde::Deserialize;
 
@@ -11,7 +11,10 @@ use crate::{
     config::OAuthProvider,
     errors::{AppError, AppResult, OAuthError},
     middleware::{AuthUser, RequireUser},
-    models::{AuthResponse, LoginRequest, MessageResponse, OAuthConnection, RefreshRequest, RegisterRequest},
+    models::{
+        AuthResponse, LoginRequest, MessageResponse, OAuthConnection, RefreshRequest,
+        RegisterRequest,
+    },
     services::oauth,
     state::AppState,
 };
@@ -315,8 +318,13 @@ pub async fn unlink_connection(
     Path(slug): Path<String>,
 ) -> AppResult<Json<MessageResponse>> {
     let provider = resolve_provider(&slug)?;
-    state.user.unlink_oauth_account(claims.sub, provider).await?;
+    state
+        .user
+        .unlink_oauth_account(claims.sub, provider)
+        .await?;
 
     tracing::info!(user_id = %claims.sub, %provider, "OAuth provider unlinked");
-    Ok(Json(MessageResponse::new(format!("Provider '{provider}' unlinked successfully"))))
+    Ok(Json(MessageResponse::new(format!(
+        "Provider '{provider}' unlinked successfully"
+    ))))
 }
