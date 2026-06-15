@@ -115,6 +115,14 @@ impl From<crate::config::OAuthProvider> for Provider {
     }
 }
 
+/// A linked OAuth provider returned by `GET /auth/connections`.
+#[derive(Debug, Serialize, sqlx::FromRow, ToSchema)]
+pub struct OAuthConnection {
+    pub provider: Provider,
+    pub provider_user_id: String,
+    pub created_at: String,
+}
+
 /// Canonical user row — pure identity, no credential data.
 ///
 /// A `User` row is created once and never holds authentication secrets.
@@ -158,6 +166,7 @@ pub struct User {
 ///     updated_at    TIMESTAMPTZ NOT NULL DEFAULT now()
 /// );
 /// ```
+#[allow(dead_code)]
 #[derive(Debug, Clone, FromRow)]
 pub struct LocalCredential {
     pub user_id: Uuid,
@@ -170,56 +179,6 @@ pub struct LocalCredential {
 
     /// Argon2id hash of the user's password.  Never serialised or logged.
     pub password_hash: String,
-
-    pub created_at: OffsetDateTime,
-    pub updated_at: OffsetDateTime,
-}
-
-/// OAuth 2.0 token set for a linked external provider.
-///
-/// Multiple rows per user are allowed (one per `(user_id, provider)` pair),
-/// so a single account can be linked to both Google and GitHub.
-///
-/// # Token encryption
-/// `access_token_enc` and `refresh_token_enc` store AES-GCM–encrypted blobs;
-/// the plaintext tokens are never written to the database.  The encryption key
-/// is sourced from `AppConfig::oauth_token_key` at runtime.
-///
-/// # Database table
-/// ```sql
-/// CREATE TABLE oauth_credentials (
-///     id                 UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-///     user_id            UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-///     provider           oauth_provider NOT NULL,
-///     provider_user_id   TEXT NOT NULL,
-///     access_token_enc   TEXT,
-///     refresh_token_enc  TEXT,
-///     expires_at         TIMESTAMPTZ,
-///     created_at         TIMESTAMPTZ NOT NULL DEFAULT now(),
-///     updated_at         TIMESTAMPTZ NOT NULL DEFAULT now(),
-///     UNIQUE (provider, provider_user_id)
-/// );
-/// ```
-#[derive(Debug, Clone, FromRow)]
-pub struct OAuthCredential {
-    pub id: Uuid,
-    pub user_id: Uuid,
-    pub provider: Provider,
-
-    /// Stable identifier issued by the provider (e.g. Google `sub`, GitHub `id`).
-    pub provider_user_id: String,
-
-    /// AES-GCM–encrypted access token, base64-encoded.
-    /// `None` if the provider did not supply one on the most recent exchange.
-    pub access_token_enc: Option<String>,
-
-    /// AES-GCM–encrypted refresh token, base64-encoded.
-    /// `None` for providers that do not issue refresh tokens.
-    pub refresh_token_enc: Option<String>,
-
-    /// UTC instant at which `access_token_enc` expires.
-    /// `None` for providers that do not advertise token lifetime.
-    pub expires_at: Option<OffsetDateTime>,
 
     pub created_at: OffsetDateTime,
     pub updated_at: OffsetDateTime,

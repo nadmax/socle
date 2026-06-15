@@ -171,15 +171,6 @@ pub enum OAuthError {
     #[error("OAuth state store error: {0}")]
     StateStoreRedis(#[from] redis::RedisError),
 
-    /// The provider email is already linked to a different local account and
-    /// the conflict cannot be resolved automatically.
-    ///
-    /// Raised by `services/auth.rs` when two users have separately
-    /// authenticated with different providers that report the same email,
-    /// and automatic merging is disabled.
-    #[error("account conflict: email '{email}' is already linked to a different account")]
-    AccountConflict { email: String },
-
     /// The provider returned an error response on the callback (e.g. `access_denied`).
     ///
     /// This means the user declined consent or the provider rejected the request —
@@ -202,7 +193,6 @@ impl OAuthError {
             Self::IncompleteProfile(_) => StatusCode::BAD_GATEWAY,
             Self::InvalidRedirectUri(_) => StatusCode::INTERNAL_SERVER_ERROR,
             Self::StateStore(_) | Self::StateStoreRedis(_) => StatusCode::SERVICE_UNAVAILABLE,
-            Self::AccountConflict { .. } => StatusCode::CONFLICT,
             Self::ProviderDenied { .. } => StatusCode::BAD_REQUEST,
             Self::UnknownProvider(_) => StatusCode::NOT_FOUND,
         }
@@ -219,7 +209,6 @@ impl OAuthError {
             Self::InvalidRedirectUri(_) => "OAUTH_INVALID_REDIRECT_URI",
             Self::StateStore(_) => "OAUTH_STATE_STORE_UNAVAILABLE",
             Self::StateStoreRedis(_) => "OAUTH_STATE_STORE_ERROR",
-            Self::AccountConflict { .. } => "OAUTH_ACCOUNT_CONFLICT",
             Self::ProviderDenied { .. } => "OAUTH_PROVIDER_DENIED",
             Self::UnknownProvider(_) => "OAUTH_UNKNOWN_PROVIDER",
         }

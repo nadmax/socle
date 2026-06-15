@@ -31,6 +31,8 @@ use state::AppState;
         routes::auth::logout,
         routes::auth::authorize,
         routes::auth::callback,
+        routes::auth::list_connections,
+        routes::auth::unlink_connection,
         routes::users::get_me,
         routes::users::change_password,
         routes::users::deactivate_account,

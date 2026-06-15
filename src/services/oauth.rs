@@ -179,9 +179,6 @@ struct GitHubEmail {
 pub struct AuthorizationRequest {
     /// The URL to redirect the user's browser to.
     pub url: Url,
-    /// The opaque `state` token that must be round-tripped through the provider
-    /// and passed to [`exchange_code`].  Store it in [`StateStore`] immediately.
-    pub state_key: String,
 }
 
 /// Build the provider consent-screen URL and register the PKCE state.
@@ -225,7 +222,6 @@ pub async fn build_authorization_url(
 
     Ok(AuthorizationRequest {
         url,
-        state_key: state_key.to_owned(),
     })
 }
 

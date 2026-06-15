@@ -1,0 +1,27 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO oauth_credentials (id, user_id, provider, provider_user_id)\n            VALUES ($1, $2, $3, $4)\n            ON CONFLICT (provider, provider_user_id) DO NOTHING\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        {
+          "Custom": {
+            "name": "oauth_provider",
+            "kind": {
+              "Enum": [
+                "google",
+                "github"
+              ]
+            }
+          }
+        },
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "f7e49d64aa307cf07880ec5a21d150a680c99b827041768f9d8d865a17fb9e97"
+}

@@ -4,7 +4,7 @@ use uuid::Uuid;
 use crate::{
     config::OAuthProvider,
     errors::{AppError, AppResult},
-    models::{LocalCredential, Role, User},
+    models::{OAuthConnection, LocalCredential, Role, User},
     services::oauth::OAuthProfile,
     services::token::hash_password,
 };
@@ -315,17 +315,82 @@ impl UserService {
 
         sqlx::query!(
             r#"
-            INSERT INTO oauth_credentials (id, user_id, provider, provider_user_id)
-            VALUES ($1, $2, $3, $4)
+            INSERT INTO oauth_credentials (id, user_id, provider, provider_user_id, avatar_url)
+            VALUES ($1, $2, $3, $4, $5)
             ON CONFLICT (provider, provider_user_id) DO NOTHING
             "#,
             Uuid::now_v7(),
             user_id,
             provider_db as crate::models::Provider,
             profile.provider_user_id,
+            profile.avatar_url.as_deref(),
         )
         .execute(&self.pool)
         .await?;
+
+        Ok(())
+    }
+
+    /// List all OAuth providers linked to a user's account.
+    ///
+    /// # Errors
+    ///
+    /// Returns an [`AppError`] if the database query fails.
+    pub async fn list_oauth_connections(&self, user_id: Uuid) -> AppResult<Vec<OAuthConnection>> {
+        let rows = sqlx::query!(
+            r#"
+            SELECT provider AS "provider: crate::models::Provider", provider_user_id, created_at
+            FROM oauth_credentials
+            WHERE user_id = $1
+            ORDER BY created_at ASC
+            "#,
+            user_id,
+        )
+        .fetch_all(&self.pool)
+        .await?;
+
+        let connections = rows
+            .into_iter()
+            .map(|r| OAuthConnection {
+                provider: r.provider,
+                provider_user_id: r.provider_user_id,
+                created_at: r
+                    .created_at
+                    .format(&time::format_description::well_known::Rfc3339)
+                    .unwrap_or_default(),
+            })
+            .collect();
+
+        Ok(connections)
+    }
+
+    /// Unlink an OAuth provider from a user's account.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`AppError::UserNotFound`] if the link does not exist, or an
+    /// [`AppError`] if the database delete fails.
+    pub async fn unlink_oauth_account(
+        &self,
+        user_id: Uuid,
+        provider: OAuthProvider,
+    ) -> AppResult<()> {
+        let provider_db = crate::models::Provider::from(provider);
+
+        let result = sqlx::query!(
+            r#"
+            DELETE FROM oauth_credentials
+            WHERE user_id = $1 AND provider = $2
+            "#,
+            user_id,
+            provider_db as crate::models::Provider,
+        )
+        .execute(&self.pool)
+        .await?;
+
+        if result.rows_affected() == 0 {
+            return Err(AppError::UserNotFound);
+        }
 
         Ok(())
     }

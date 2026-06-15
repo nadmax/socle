@@ -1,0 +1,62 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT provider AS \"provider: crate::models::Provider\", provider_user_id, created_at\n            FROM oauth_credentials\n            WHERE user_id = $1\n            ORDER BY created_at ASC\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "provider: crate::models::Provider",
+        "type_info": {
+          "Custom": {
+            "name": "oauth_provider",
+            "kind": {
+              "Enum": [
+                "google",
+                "github"
+              ]
+            }
+          }
+        },
+        "origin": {
+          "Table": {
+            "table": "oauth_credentials",
+            "name": "provider"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "provider_user_id",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "oauth_credentials",
+            "name": "provider_user_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "created_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "oauth_credentials",
+            "name": "created_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "e3c2730f4d0bc1f3ec04babfbe4633f8b494bc8bacc52de5cc40f6b7460aafa1"
+}

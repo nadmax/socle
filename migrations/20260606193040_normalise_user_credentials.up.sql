@@ -23,5 +23,6 @@ CREATE TABLE oauth_credentials (
     expires_at        TIMESTAMPTZ,
     created_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
+    avatar_url        TEXT,
     UNIQUE (provider, provider_user_id)
 );

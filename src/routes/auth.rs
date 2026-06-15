@@ -3,15 +3,15 @@ use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
     response::Redirect,
-    routing::{get, post},
+    routing::{get, post, delete},
 };
 use serde::Deserialize;
 
 use crate::{
     config::OAuthProvider,
     errors::{AppError, AppResult, OAuthError},
-    middleware::AuthUser,
-    models::{AuthResponse, LoginRequest, MessageResponse, RefreshRequest, RegisterRequest},
+    middleware::{AuthUser, RequireUser},
+    models::{AuthResponse, LoginRequest, MessageResponse, OAuthConnection, RefreshRequest, RegisterRequest},
     services::oauth,
     state::AppState,
 };
@@ -25,6 +25,8 @@ pub fn router() -> Router<AppState> {
         .route("/auth/logout", post(logout))
         .route("/auth/{provider}", get(authorize))
         .route("/auth/{provider}/callback", get(callback))
+        .route("/auth/connections", get(list_connections))
+        .route("/auth/connections/{provider}", delete(unlink_connection))
 }
 
 /// Register a new user account.
@@ -269,4 +271,52 @@ pub async fn callback(
 fn resolve_provider(slug: &str) -> AppResult<OAuthProvider> {
     OAuthProvider::from_slug(slug)
         .ok_or_else(|| AppError::OAuth(OAuthError::UnknownProvider(slug.to_owned())))
+}
+
+/// List all OAuth providers linked to the authenticated user's account.
+#[utoipa::path(
+    get,
+    path = "/auth/connections",
+    tag  = "auth",
+    security(("bearer_auth" = [])),
+    responses(
+        (status = 200, description = "Linked providers",  body = Vec<OAuthConnection>),
+        (status = 401, description = "Not authenticated", body = serde_json::Value),
+    )
+)]
+pub async fn list_connections(
+    State(state): State<AppState>,
+    RequireUser(claims): RequireUser,
+) -> AppResult<Json<Vec<OAuthConnection>>> {
+    let connections = state.user.list_oauth_connections(claims.sub).await?;
+    Ok(Json(connections))
+}
+
+/// Unlink an OAuth provider from the authenticated user's account.
+///
+/// # Errors
+///
+/// Returns `404 Not Found` if the provider is not linked to the account.
+#[utoipa::path(
+    delete,
+    path = "/auth/connections/{provider}",
+    tag  = "auth",
+    security(("bearer_auth" = [])),
+    params(("provider" = String, Path, description = "Provider slug to unlink (e.g. `github`)")),
+    responses(
+        (status = 200, description = "Provider unlinked",    body = MessageResponse),
+        (status = 401, description = "Not authenticated",    body = serde_json::Value),
+        (status = 404, description = "Provider not linked",  body = serde_json::Value),
+    )
+)]
+pub async fn unlink_connection(
+    State(state): State<AppState>,
+    RequireUser(claims): RequireUser,
+    Path(slug): Path<String>,
+) -> AppResult<Json<MessageResponse>> {
+    let provider = resolve_provider(&slug)?;
+    state.user.unlink_oauth_account(claims.sub, provider).await?;
+
+    tracing::info!(user_id = %claims.sub, %provider, "OAuth provider unlinked");
+    Ok(Json(MessageResponse::new(format!("Provider '{provider}' unlinked successfully"))))
 }
