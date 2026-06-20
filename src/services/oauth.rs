@@ -68,6 +68,11 @@ impl StateStore {
     /// # Errors
     ///
     /// Returns an [`OAuthError`] if the Redis connection or write fails.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `StoredPendingAuth` serialisation fails (the struct only
+    /// contains `String` fields so this is infallible).
     pub async fn insert(
         &self,
         state: &str,
@@ -235,6 +240,11 @@ pub async fn build_authorization_url(
 /// - [`OAuthError::ProviderMismatch`]: state belongs to a different provider
 /// - [`OAuthError::TokenExchange`]: provider rejected the code
 /// - [`OAuthError::InvalidRedirectUri`]: config error
+///
+/// # Panics
+///
+/// Panics if the hard-coded placeholder auth URL is syntactically invalid
+/// (it is a static string, so this is infallible).
 pub async fn exchange_code(
     provider: OAuthProvider,
     provider_cfg: &OAuthProviderConfig,

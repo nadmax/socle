@@ -45,6 +45,14 @@ url = "2.5.8"
 utoipa = { version = "5.5.0", features = ["axum_extras", "uuid"] }
 utoipa-swagger-ui = { version = "9.0.2", features = ["axum"] }
 
+[[test]]
+name = "services"
+path = "tests/services/mod.rs"
+
+[[test]]
+name = "routes"
+path = "tests/routes/mod.rs"
+
 [dev-dependencies]
 axum-test = "20.1.0"
 sqlx = { version = "0.9.0", features = [

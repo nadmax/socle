@@ -1,6 +1,7 @@
-use ama::{
+use yaima::{
+    config::OAuthProvider,
     errors::AppError,
-    services::{auth::AuthService, token::TokenService, user::UserService},
+    services::{auth::AuthService, oauth::OAuthProfile, token::TokenService, user::UserService},
 };
 
 use crate::common::{test_config, test_pool, unique_email, unique_username};
@@ -80,16 +81,18 @@ async fn login_unknown_email_returns_invalid_credentials() {
 async fn login_disabled_account_returns_account_disabled() {
     let pool = test_pool().await;
     let config = test_config();
-    let user = UserService::new(pool.clone());
+    let user_svc = UserService::new(pool.clone());
     let token = TokenService::new(pool.clone(), config.clone());
-    let svc = AuthService::new(user.clone(), token, config);
+    let svc = AuthService::new(user_svc.clone(), token, config);
 
     let email = unique_email("dis");
-    let user = user
-        .create(&email, &unique_username("dis"), "password123")
+    let username = unique_username("dis");
+    let password = "password123";
+    let (user, _) = user_svc
+        .create(&email, email.split('@').next().unwrap(), &username, password)
         .await
         .unwrap();
-    user.deactivate(user.id).await.unwrap();
+    user_svc.deactivate(user.id).await.unwrap();
 
     let err = svc.login(&email, "password123").await.unwrap_err();
     assert!(matches!(err, AppError::AccountDisabled));
@@ -120,4 +123,107 @@ async fn refresh_token_cannot_be_reused() {
     svc.refresh(&resp.refresh_token).await.unwrap();
     let err = svc.refresh(&resp.refresh_token).await.unwrap_err();
     assert!(matches!(err, AppError::RefreshTokenInvalid));
+}
+
+#[tokio::test]
+async fn logout_revokes_all_tokens() {
+    let svc = auth().await;
+    let email = unique_email("lo");
+    let resp = svc
+        .register(&email, &unique_username("lo"), "password123")
+        .await
+        .unwrap();
+
+    svc.logout(resp.user.id).await.unwrap();
+
+    let err = svc.refresh(&resp.refresh_token).await.unwrap_err();
+    assert!(matches!(err, AppError::RefreshTokenInvalid));
+}
+
+#[tokio::test]
+async fn login_or_register_oauth_creates_user_and_returns_tokens() {
+    let svc = auth().await;
+    let email = unique_email("oa");
+    let profile = OAuthProfile {
+        provider: OAuthProvider::Google,
+        provider_user_id: "google-new-1".into(),
+        email: email.clone(),
+        display_name: Some("OAuth User".into()),
+        avatar_url: None,
+    };
+
+    let resp = svc.login_or_register_oauth(&profile).await.unwrap();
+
+    assert!(!resp.access_token.is_empty());
+    assert!(!resp.refresh_token.is_empty());
+    assert_eq!(resp.user.email, email);
+    assert!(!resp.user.has_local_credential);
+}
+
+#[tokio::test]
+async fn login_or_register_oauth_links_existing_user_by_email() {
+    let svc = auth().await;
+    let email = unique_email("link");
+    svc.register(&email, &unique_username("link"), "password123")
+        .await
+        .unwrap();
+
+    let profile = OAuthProfile {
+        provider: OAuthProvider::Google,
+        provider_user_id: "google-link-1".into(),
+        email: email.clone(),
+        display_name: None,
+        avatar_url: None,
+    };
+
+    let resp = svc.login_or_register_oauth(&profile).await.unwrap();
+    assert_eq!(resp.user.email, email);
+    assert!(resp.user.has_local_credential);
+}
+
+#[tokio::test]
+async fn login_or_register_oauth_returns_tokens_for_existing_link() {
+    let svc = auth().await;
+    let email = unique_email("existing");
+    let profile = OAuthProfile {
+        provider: OAuthProvider::GitHub,
+        provider_user_id: "github-existing-1".into(),
+        email: email.clone(),
+        display_name: Some("Existing".into()),
+        avatar_url: None,
+    };
+
+    svc.login_or_register_oauth(&profile).await.unwrap();
+
+    let resp = svc.login_or_register_oauth(&profile).await.unwrap();
+    assert_eq!(resp.user.email, email);
+    assert!(!resp.access_token.is_empty());
+}
+
+#[tokio::test]
+async fn login_or_register_oauth_rejects_disabled_account() {
+    let pool = test_pool().await;
+    let config = test_config();
+    let user_svc = UserService::new(pool.clone());
+    let token = TokenService::new(pool.clone(), config.clone());
+    let svc = AuthService::new(user_svc.clone(), token, config);
+    let email = unique_email("dis-oa");
+
+    let username = unique_username("dis-oa");
+    let (created, _) = user_svc
+        .create(&email, email.split('@').next().unwrap(), &username, "password123")
+        .await
+        .unwrap();
+    user_svc.deactivate(created.id).await.unwrap();
+
+    let profile = OAuthProfile {
+        provider: OAuthProvider::GitHub,
+        provider_user_id: "github-disabled-1".into(),
+        email: email.clone(),
+        display_name: None,
+        avatar_url: None,
+    };
+
+    let err = svc.login_or_register_oauth(&profile).await.unwrap_err();
+    assert!(matches!(err, AppError::AccountDisabled));
 }

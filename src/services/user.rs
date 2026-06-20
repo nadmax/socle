@@ -399,10 +399,11 @@ impl UserService {
 /// Map a Postgres unique-constraint violation to a specific [`AppError`];
 /// fall through to [`AppError::Database`] for any other error.
 fn map_constraint_err(err: sqlx::Error, constraint: &str, mapped: AppError) -> AppError {
-    if let sqlx::Error::Database(ref db_err) = err {
-        if db_err.code().as_deref() == Some("23505") && db_err.message().contains(constraint) {
-            return mapped;
-        }
+    if let sqlx::Error::Database(ref db_err) = err
+        && db_err.code().as_deref() == Some("23505")
+        && db_err.message().contains(constraint)
+    {
+        return mapped;
     }
     AppError::Database(err)
 }

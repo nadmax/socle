@@ -1,6 +1,6 @@
 use serde_json::json;
 
-use crate::common::{test_server, unique_email, unique_username};
+use crate::common::{register_user, test_server, unique_email, unique_username};
 
 #[tokio::test]
 async fn register_returns_201_and_user_role() {
@@ -194,4 +194,227 @@ async fn logout_revokes_refresh_token() {
         .json(&json!({ "refresh_token": refresh_token }))
         .await;
     assert_eq!(res.status_code().as_u16(), 401);
+}
+
+// ── OAuth route tests ────────────────────────────────────────────────────────
+
+#[tokio::test]
+async fn authorize_unknown_provider_returns_404() {
+    let (s, _) = test_server().await;
+
+    let res = s.get("/auth/unknown").await;
+
+    assert_eq!(res.status_code().as_u16(), 404);
+    assert_eq!(
+        res.json::<serde_json::Value>()["error"]["code"],
+        "OAUTH_UNKNOWN_PROVIDER"
+    );
+}
+
+#[tokio::test]
+async fn authorize_unconfigured_provider_returns_503() {
+    let (s, _) = test_server().await;
+
+    let res = s.get("/auth/google").await;
+
+    assert_eq!(res.status_code().as_u16(), 503);
+    assert_eq!(
+        res.json::<serde_json::Value>()["error"]["code"],
+        "OAUTH_PROVIDER_NOT_CONFIGURED"
+    );
+}
+
+#[tokio::test]
+async fn callback_unknown_provider_returns_404() {
+    let (s, _) = test_server().await;
+
+    let res = s
+        .get("/auth/unknown/callback?code=dummy&state=dummy")
+        .await;
+
+    assert_eq!(res.status_code().as_u16(), 404);
+    assert_eq!(
+        res.json::<serde_json::Value>()["error"]["code"],
+        "OAUTH_UNKNOWN_PROVIDER"
+    );
+}
+
+#[tokio::test]
+async fn callback_with_error_returns_400() {
+    let (s, _) = test_server().await;
+
+    let res = s
+        .get("/auth/google/callback?error=access_denied&error_description=user+cancelled")
+        .await;
+
+    assert_eq!(res.status_code().as_u16(), 400);
+    assert_eq!(
+        res.json::<serde_json::Value>()["error"]["code"],
+        "OAUTH_PROVIDER_DENIED"
+    );
+}
+
+#[tokio::test]
+async fn callback_missing_params_returns_401() {
+    let (s, _) = test_server().await;
+
+    let res = s.get("/auth/google/callback").await;
+
+    assert_eq!(res.status_code().as_u16(), 401);
+    assert_eq!(
+        res.json::<serde_json::Value>()["error"]["code"],
+        "OAUTH_INVALID_STATE"
+    );
+}
+
+#[tokio::test]
+async fn list_connections_without_auth_returns_401() {
+    let (s, _) = test_server().await;
+
+    let res = s.get("/auth/connections").await;
+
+    assert_eq!(res.status_code().as_u16(), 401);
+    assert_eq!(
+        res.json::<serde_json::Value>()["error"]["code"],
+        "MISSING_AUTH_HEADER"
+    );
+}
+
+#[tokio::test]
+async fn list_connections_as_guest_returns_403() {
+    let (s, pool) = test_server().await;
+    let email = unique_email("lcg");
+    let username = unique_username("lcg");
+    let (_, _) = register_user(&s, &email, &username, "password123").await;
+
+    sqlx::query!("UPDATE users SET role = 'guest' WHERE email = $1", email)
+        .execute(&pool)
+        .await
+        .unwrap();
+
+    let body: serde_json::Value = s
+        .post("/auth/login")
+        .json(&json!({ "email": email, "password": "password123" }))
+        .await
+        .json();
+    let token = body["access_token"].as_str().unwrap();
+
+    let res = s
+        .get("/auth/connections")
+        .authorization_bearer(token)
+        .await;
+
+    assert_eq!(res.status_code().as_u16(), 403);
+    assert_eq!(
+        res.json::<serde_json::Value>()["error"]["code"],
+        "FORBIDDEN"
+    );
+}
+
+#[tokio::test]
+async fn list_connections_as_user_returns_empty_list() {
+    let (s, _) = test_server().await;
+    let email = unique_email("lcu");
+    let username = unique_username("lcu");
+    let (token, _) = register_user(&s, &email, &username, "password123").await;
+
+    let res = s
+        .get("/auth/connections")
+        .authorization_bearer(&token)
+        .await;
+
+    res.assert_status_success();
+    let body: serde_json::Value = res.json();
+    assert_eq!(body, serde_json::json!([]));
+}
+
+#[tokio::test]
+async fn unlink_without_auth_returns_401() {
+    let (s, _) = test_server().await;
+
+    let res = s.delete("/auth/connections/google").await;
+
+    assert_eq!(res.status_code().as_u16(), 401);
+    assert_eq!(
+        res.json::<serde_json::Value>()["error"]["code"],
+        "MISSING_AUTH_HEADER"
+    );
+}
+
+#[tokio::test]
+async fn unlink_as_guest_returns_403() {
+    let (s, pool) = test_server().await;
+    let email = unique_email("ulg");
+    let (_, _) = register_user(&s, &email, &unique_username("ulg"), "password123").await;
+
+    sqlx::query!("UPDATE users SET role = 'guest' WHERE email = $1", email)
+        .execute(&pool)
+        .await
+        .unwrap();
+
+    let body: serde_json::Value = s
+        .post("/auth/login")
+        .json(&json!({ "email": email, "password": "password123" }))
+        .await
+        .json();
+    let token = body["access_token"].as_str().unwrap();
+
+    let res = s
+        .delete("/auth/connections/google")
+        .authorization_bearer(token)
+        .await;
+
+    assert_eq!(res.status_code().as_u16(), 403);
+    assert_eq!(
+        res.json::<serde_json::Value>()["error"]["code"],
+        "FORBIDDEN"
+    );
+}
+
+#[tokio::test]
+async fn unlink_unknown_provider_slug_returns_404() {
+    let (s, _) = test_server().await;
+    let email = unique_email("uup");
+    let (_, _) = register_user(&s, &email, &unique_username("uup"), "password123").await;
+    let body: serde_json::Value = s
+        .post("/auth/login")
+        .json(&json!({ "email": email, "password": "password123" }))
+        .await
+        .json();
+    let token = body["access_token"].as_str().unwrap();
+
+    let res = s
+        .delete("/auth/connections/unknown")
+        .authorization_bearer(token)
+        .await;
+
+    assert_eq!(res.status_code().as_u16(), 404);
+    assert_eq!(
+        res.json::<serde_json::Value>()["error"]["code"],
+        "OAUTH_UNKNOWN_PROVIDER"
+    );
+}
+
+#[tokio::test]
+async fn unlink_non_existent_connection_returns_404() {
+    let (s, _) = test_server().await;
+    let email = unique_email("unc");
+    let (_, _) = register_user(&s, &email, &unique_username("unc"), "password123").await;
+    let body: serde_json::Value = s
+        .post("/auth/login")
+        .json(&json!({ "email": email, "password": "password123" }))
+        .await
+        .json();
+    let token = body["access_token"].as_str().unwrap();
+
+    let res = s
+        .delete("/auth/connections/google")
+        .authorization_bearer(token)
+        .await;
+
+    assert_eq!(res.status_code().as_u16(), 404);
+    assert_eq!(
+        res.json::<serde_json::Value>()["error"]["code"],
+        "USER_NOT_FOUND"
+    );
 }

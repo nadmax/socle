@@ -277,6 +277,11 @@ fn resolve_provider(slug: &str) -> AppResult<OAuthProvider> {
 }
 
 /// List all OAuth providers linked to the authenticated user's account.
+///
+/// # Errors
+///
+/// Returns [`UNAUTHORIZED`](StatusCode::UNAUTHORIZED) if the user is not
+/// authenticated (handled by [`RequireUser`]) or a database error.
 #[utoipa::path(
     get,
     path = "/auth/connections",

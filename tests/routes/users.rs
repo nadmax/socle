@@ -1,6 +1,6 @@
 use serde_json::json;
 
-use crate::common::{make_admin, register_user, test_server, unique_email, unique_username};
+use crate::common::{register_user, test_server, unique_email, unique_username};
 
 #[tokio::test]
 async fn get_me_returns_own_profile() {
@@ -60,7 +60,7 @@ async fn change_password_succeeds_and_new_password_works() {
 async fn change_password_wrong_current_returns_401() {
     let (s, _) = test_server().await;
     let (token, _) =
-        register_user(&s, &unique_email("cpw"), &unique_username("cpw"), "correct").await;
+        register_user(&s, &unique_email("cpw"), &unique_username("cpw"), "correct1").await;
 
     let res = s
         .put("/users/me/password")

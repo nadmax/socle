@@ -2,9 +2,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use argon2::{
     Argon2,
-    password_hash::{
-        PasswordHash, PasswordHasher, PasswordVerifier, SaltString, rand_core::OsRng as ArgonOsRng,
-    },
+    password_hash::{PasswordHash, PasswordHasher, PasswordVerifier, SaltString, rand_core::OsRng as ArgonOsRng},
 };
 use jsonwebtoken::{DecodingKey, EncodingKey, Header, Validation, decode, encode};
 use sqlx::PgPool;
@@ -32,12 +30,17 @@ struct RefreshTokenRow {
 pub struct TokenService {
     pool: PgPool,
     config: Config,
+    salt: SaltString,
 }
 
 impl TokenService {
     #[must_use]
     pub fn new(pool: PgPool, config: Config) -> Self {
-        Self { pool, config }
+        Self {
+            pool,
+            config,
+            salt: SaltString::generate(&mut ArgonOsRng),
+        }
     }
 
     /// Encode a new signed JWT access token for the given user.
@@ -101,7 +104,7 @@ impl TokenService {
     /// insert fails.
     pub async fn create_refresh_token(&self, user_id: Uuid) -> AppResult<String> {
         let raw = generate_opaque_token();
-        let token_hash = hash_refresh_token(&raw)?;
+        let token_hash = self.hash_refresh_token(&raw);
 
         let expires_at = OffsetDateTime::now_utc()
             + Duration::seconds(self.config.refresh_token_expiry_secs.cast_signed());
@@ -133,7 +136,7 @@ impl TokenService {
     /// revoked, or expired — in the latter two cases all tokens for that user are
     /// also revoked proactively. Returns an [`AppError`] if any database call fails.
     pub async fn rotate_refresh_token(&self, raw_token: &str) -> AppResult<(String, Uuid)> {
-        let hash = hash_refresh_token(raw_token)?;
+        let hash = self.hash_refresh_token(raw_token);
 
         let record: RefreshTokenRow = sqlx::query_as!(
             RefreshTokenRow,
@@ -178,6 +181,18 @@ impl TokenService {
         .await?;
         Ok(())
     }
+
+    /// Deterministic Argon2id hash of the raw refresh token value.
+    ///
+    /// The salt is generated once at construction time and reused for all
+    /// calls, making the output **deterministic** so the same raw token
+    /// always produces the same database lookup value.
+    fn hash_refresh_token(&self, raw: &str) -> String {
+        Argon2::default()
+            .hash_password(raw.as_bytes(), &self.salt)
+            .expect("Argon2 hashing is infallible with a valid salt")
+            .to_string()
+    }
 }
 
 /// Generate a cryptographically-random 256-bit token encoded as hex.
@@ -185,22 +200,6 @@ fn generate_opaque_token() -> String {
     let mut bytes = [0u8; 32];
     getrandom::fill(&mut bytes).expect("OS RNG failed");
     hex::encode(bytes)
-}
-
-/// Argon2id hash of the raw refresh token value.
-///
-/// Using Argon2 ensures that a DB leak cannot be trivially converted into
-/// working tokens without substantial compute.
-///
-/// # Errors
-///
-/// Returns [`AppError::Hashing`] if the Argon2 hashing operation fails.
-fn hash_refresh_token(raw: &str) -> AppResult<String> {
-    let salt = SaltString::generate(&mut ArgonOsRng);
-    Argon2::default()
-        .hash_password(raw.as_bytes(), &salt)
-        .map(|h| h.to_string())
-        .map_err(|_| AppError::Hashing)
 }
 
 fn unix_now() -> u64 {

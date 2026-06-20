@@ -186,13 +186,14 @@ pub enum OAuthError {
 impl OAuthError {
     fn status_code(&self) -> StatusCode {
         match self {
-            Self::ProviderNotConfigured(_) => StatusCode::SERVICE_UNAVAILABLE,
+            Self::ProviderNotConfigured(_) | Self::StateStore(_) | Self::StateStoreRedis(_) => {
+                StatusCode::SERVICE_UNAVAILABLE
+            }
             Self::InvalidState | Self::ProviderMismatch { .. } => StatusCode::UNAUTHORIZED,
-            Self::TokenExchange(_) => StatusCode::BAD_GATEWAY,
-            Self::ProviderUnreachable(_) => StatusCode::BAD_GATEWAY,
-            Self::IncompleteProfile(_) => StatusCode::BAD_GATEWAY,
+            Self::TokenExchange(_) | Self::ProviderUnreachable(_) | Self::IncompleteProfile(_) => {
+                StatusCode::BAD_GATEWAY
+            }
             Self::InvalidRedirectUri(_) => StatusCode::INTERNAL_SERVER_ERROR,
-            Self::StateStore(_) | Self::StateStoreRedis(_) => StatusCode::SERVICE_UNAVAILABLE,
             Self::ProviderDenied { .. } => StatusCode::BAD_REQUEST,
             Self::UnknownProvider(_) => StatusCode::NOT_FOUND,
         }
