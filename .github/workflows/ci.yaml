@@ -38,6 +38,7 @@ jobs:
           done
 
   format:
+    name: Check Code Format
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
