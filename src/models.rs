@@ -280,6 +280,26 @@ pub struct UserResponse {
 /// to `UserResponse::from` to produce the API response.
 ///
 /// ```rust
+/// # use yaima::models::{User, UserView, UserResponse, LocalCredential, Role};
+/// # use uuid::Uuid;
+/// # use time::OffsetDateTime;
+/// # let now = OffsetDateTime::now_utc();
+/// # let user = User {
+/// #     id: Uuid::now_v7(),
+/// #     email: "alice@example.com".into(),
+/// #     display_name: "Alice".into(),
+/// #     role: Role::User,
+/// #     is_active: true,
+/// #     created_at: now,
+/// #     updated_at: now,
+/// # };
+/// # let lc = LocalCredential {
+/// #     user_id: user.id,
+/// #     username: "alice".into(),
+/// #     password_hash: "***".into(),
+/// #     created_at: now,
+/// #     updated_at: now,
+/// # };
 /// let view = UserView {
 ///     user,
 ///     local_credential: Some(lc),

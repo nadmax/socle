@@ -4,10 +4,12 @@ use axum_test::TestServer;
 use sqlx::{PgPool, postgres::PgPoolOptions};
 use std::env;
 
+use std::sync::Arc;
+
 use yaima::{
     config::Config,
     routes,
-    services::{auth::AuthService, token::TokenService, user::UserService},
+    services::{auth::AuthService, oauth::StateStore, token::TokenService, user::UserService},
     state::AppState,
 };
 
@@ -36,9 +38,11 @@ pub fn test_config() -> Config {
     Config {
         database_url: String::new(),
         jwt_secret: "test-secret-that-is-long-enough-32+".to_owned(),
+        redis_url: "redis://127.0.0.1:6379".to_owned(),
         access_token_expiry_secs: 3600,
         refresh_token_expiry_secs: 86_400,
         bind_addr: "0.0.0.0:0".to_owned(),
+        oauth: Default::default(),
     }
 }
 
@@ -47,10 +51,13 @@ pub async fn test_app() -> (Router, PgPool) {
     let pool = test_pool().await;
     let config = test_config();
 
+    let oauth_store = Arc::new(
+        StateStore::new(&config.redis_url).expect("failed to create oauth state store for tests"),
+    );
     let user = UserService::new(pool.clone());
     let token = TokenService::new(pool.clone(), config.clone());
     let auth = AuthService::new(user.clone(), token.clone(), config.clone());
-    let state = AppState::new(auth, user, token);
+    let state = AppState::new(auth, user, token, config, oauth_store);
 
     let app = Router::new()
         .merge(routes::auth::router())

@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            INSERT INTO oauth_credentials (id, user_id, provider, provider_user_id)\n            VALUES ($1, $2, $3, $4)\n            ON CONFLICT (provider, provider_user_id) DO NOTHING\n            ",
+  "query": "\n            INSERT INTO oauth_credentials (id, user_id, provider, provider_user_id, avatar_url)\n            VALUES ($1, $2, $3, $4, $5)\n            ON CONFLICT (provider, provider_user_id) DO NOTHING\n            ",
   "describe": {
     "columns": [],
     "parameters": {
@@ -18,10 +18,11 @@
             }
           }
         },
+        "Text",
         "Text"
       ]
     },
     "nullable": []
   },
-  "hash": "f7e49d64aa307cf07880ec5a21d150a680c99b827041768f9d8d865a17fb9e97"
+  "hash": "301f7b64d759a8f05d9fe6fb7ca9c3314b0a2e711f6056dfa5bfb357db48e517"
 }

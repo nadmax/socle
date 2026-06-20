@@ -85,7 +85,7 @@ impl OAuthConfig {
     /// # Examples
     ///
     /// ```
-    /// # use crate::config::{OAuthConfig, OAuthProvider};
+    /// # use yaima::config::{OAuthConfig, OAuthProvider};
     /// let cfg = OAuthConfig::default();
     /// assert!(cfg.provider(OAuthProvider::Google).is_none());
     /// ```
@@ -175,7 +175,7 @@ impl OAuthProvider {
     /// # Examples
     ///
     /// ```
-    /// # use crate::config::OAuthProvider;
+    /// # use yaima::config::OAuthProvider;
     /// assert_eq!(OAuthProvider::from_slug("github"), Some(OAuthProvider::GitHub));
     /// assert_eq!(OAuthProvider::from_slug("unknown"), None);
     /// ```
