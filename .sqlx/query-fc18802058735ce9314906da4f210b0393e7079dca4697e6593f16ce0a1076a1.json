@@ -1,0 +1,12 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "TRUNCATE TABLE users, refresh_tokens, oauth_credentials, local_credentials CASCADE",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": []
+  },
+  "hash": "fc18802058735ce9314906da4f210b0393e7079dca4697e6593f16ce0a1076a1"
+}

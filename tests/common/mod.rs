@@ -4,15 +4,26 @@ use axum_test::TestServer;
 use sqlx::{PgPool, postgres::PgPoolOptions};
 use std::env;
 
+use std::sync::Arc;
+use std::sync::atomic::AtomicBool;
+use std::sync::atomic::Ordering;
+
 use yaima::{
     config::Config,
     routes,
-    services::{auth::AuthService, token::TokenService, user::UserService},
+    services::{auth::AuthService, oauth::StateStore, token::TokenService, user::UserService},
     state::AppState,
 };
 
+static DB_CLEANED: AtomicBool = AtomicBool::new(false);
+
 /// Connect to the test database and run all pending migrations.
+///
+/// Stale data is cleaned exactly once per process (not once per test) to allow
+/// multiple test binaries to share the same database without colliding on
+/// leftover rows from a previous run.
 pub async fn test_pool() -> PgPool {
+    let _ = dotenvy::dotenv();
     let url = env::var("TEST_DATABASE_URL")
         .or_else(|_| env::var("DATABASE_URL"))
         .expect("TEST_DATABASE_URL or DATABASE_URL must be set for integration tests");
@@ -28,6 +39,18 @@ pub async fn test_pool() -> PgPool {
         .await
         .expect("failed to run migrations");
 
+    if DB_CLEANED
+        .compare_exchange(false, true, Ordering::AcqRel, Ordering::Relaxed)
+        .is_ok()
+    {
+        sqlx::query!(
+            "TRUNCATE TABLE users, refresh_tokens, oauth_credentials, local_credentials CASCADE"
+        )
+        .execute(&pool)
+        .await
+        .expect("failed to clean test tables");
+    }
+
     pool
 }
 
@@ -36,9 +59,11 @@ pub fn test_config() -> Config {
     Config {
         database_url: String::new(),
         jwt_secret: "test-secret-that-is-long-enough-32+".to_owned(),
+        redis_url: "redis://127.0.0.1:6379".to_owned(),
         access_token_expiry_secs: 3600,
         refresh_token_expiry_secs: 86_400,
         bind_addr: "0.0.0.0:0".to_owned(),
+        oauth: Default::default(),
     }
 }
 
@@ -47,10 +72,13 @@ pub async fn test_app() -> (Router, PgPool) {
     let pool = test_pool().await;
     let config = test_config();
 
+    let oauth_store = Arc::new(
+        StateStore::new(&config.redis_url).expect("failed to create oauth state store for tests"),
+    );
     let user = UserService::new(pool.clone());
     let token = TokenService::new(pool.clone(), config.clone());
     let auth = AuthService::new(user.clone(), token.clone(), config.clone());
-    let state = AppState::new(auth, user, token);
+    let state = AppState::new(auth, user, token, config, oauth_store);
 
     let app = Router::new()
         .merge(routes::auth::router())
@@ -72,10 +100,11 @@ pub fn unique_email(prefix: &str) -> String {
     format!("{}+{}@test.com", prefix, uuid::Uuid::now_v7())
 }
 
-/// Generate a unique username.
+/// Generate a unique username (3-32 chars).
 pub fn unique_username(prefix: &str) -> String {
-    // Keep within the 3-32 char limit; take 8 hex chars from the UUID.
-    let suffix = &uuid::Uuid::now_v7().simple().to_string()[..8];
+    // Use 16 hex chars from the UUID (64 bits of randomness) — enough to avoid
+    // within-millisecond collisions across concurrent tests.
+    let suffix = &uuid::Uuid::now_v7().simple().to_string()[..16];
     format!("{prefix}{suffix}")
 }
 

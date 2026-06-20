@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            SELECT id, email, username, password_hash,\n                   role AS \"role: Role\",\n                   is_active, created_at, updated_at\n            FROM users\n            WHERE id = $1\n            ",
+  "query": "\n            UPDATE users\n            SET role = $1, updated_at = NOW()\n            WHERE id = $2\n            RETURNING id, email, display_name,\n                      role AS \"role: Role\",\n                      is_active, created_at, updated_at\n            ",
   "describe": {
     "columns": [
       {
@@ -27,28 +27,17 @@
       },
       {
         "ordinal": 2,
-        "name": "username",
+        "name": "display_name",
         "type_info": "Text",
         "origin": {
           "Table": {
             "table": "users",
-            "name": "username"
+            "name": "display_name"
           }
         }
       },
       {
         "ordinal": 3,
-        "name": "password_hash",
-        "type_info": "Text",
-        "origin": {
-          "Table": {
-            "table": "users",
-            "name": "password_hash"
-          }
-        }
-      },
-      {
-        "ordinal": 4,
         "name": "role: Role",
         "type_info": {
           "Custom": {
@@ -70,7 +59,7 @@
         }
       },
       {
-        "ordinal": 5,
+        "ordinal": 4,
         "name": "is_active",
         "type_info": "Bool",
         "origin": {
@@ -81,7 +70,7 @@
         }
       },
       {
-        "ordinal": 6,
+        "ordinal": 5,
         "name": "created_at",
         "type_info": "Timestamptz",
         "origin": {
@@ -92,7 +81,7 @@
         }
       },
       {
-        "ordinal": 7,
+        "ordinal": 6,
         "name": "updated_at",
         "type_info": "Timestamptz",
         "origin": {
@@ -105,6 +94,18 @@
     ],
     "parameters": {
       "Left": [
+        {
+          "Custom": {
+            "name": "user_role",
+            "kind": {
+              "Enum": [
+                "guest",
+                "user",
+                "admin"
+              ]
+            }
+          }
+        },
         "Uuid"
       ]
     },
@@ -115,9 +116,8 @@
       false,
       false,
       false,
-      false,
       false
     ]
   },
-  "hash": "f382b3a6c709eb094842dc8a83d51b001beea86e7370b9f9adddb5af0a10b526"
+  "hash": "8283668f9387b594ce69ab5376bbb06a550a0d510d63c453dd4327c4bcf7042f"
 }
