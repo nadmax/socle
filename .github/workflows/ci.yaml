@@ -10,6 +10,7 @@ env:
   CARGO_TERM_COLOR: always
   JWT_SECRET: test
   SQLX_OFFLINE: true
+  DATABASE_URL: postgres://test:test@localhost:5432/test
 
 jobs:
   check-commits:
