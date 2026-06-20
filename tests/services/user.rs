@@ -17,7 +17,12 @@ async fn create_returns_user_with_default_role() {
     let svc = UserService::new(pool);
     let email = unique_email("cu");
     let (user, _) = svc
-        .create(&email, email_display(&email), &unique_username("cu"), "password123")
+        .create(
+            &email,
+            email_display(&email),
+            &unique_username("cu"),
+            "password123",
+        )
         .await
         .unwrap();
     assert_eq!(user.role, Role::User);
@@ -34,7 +39,12 @@ async fn create_duplicate_email_returns_email_taken() {
         .await
         .unwrap();
     let err = svc
-        .create(&email, email_display(&email), &unique_username("b"), "password123")
+        .create(
+            &email,
+            email_display(&email),
+            &unique_username("b"),
+            "password123",
+        )
         .await
         .unwrap_err();
     assert!(matches!(err, AppError::EmailTaken));
@@ -50,7 +60,12 @@ async fn create_duplicate_username_returns_username_taken() {
         .await
         .unwrap();
     let err = svc
-        .create(&unique_email("b"), email_display(&unique_email("b")), &username, "password123")
+        .create(
+            &unique_email("b"),
+            email_display(&unique_email("b")),
+            &username,
+            "password123",
+        )
         .await
         .unwrap_err();
     assert!(matches!(err, AppError::UsernameTaken));
@@ -62,7 +77,12 @@ async fn find_by_id_returns_user() {
     let svc = UserService::new(pool);
     let email = unique_email("fbi");
     let (user, _) = svc
-        .create(&email, email_display(&email), &unique_username("fbi"), "password123")
+        .create(
+            &email,
+            email_display(&email),
+            &unique_username("fbi"),
+            "password123",
+        )
         .await
         .unwrap();
     let found = svc.find_by_id(user.id).await.unwrap();
@@ -82,9 +102,14 @@ async fn find_by_email_returns_some_for_existing_user() {
     let pool = test_pool().await;
     let svc = UserService::new(pool);
     let email = unique_email("fbe");
-    svc.create(&email, email_display(&email), &unique_username("fbe"), "password123")
-        .await
-        .unwrap();
+    svc.create(
+        &email,
+        email_display(&email),
+        &unique_username("fbe"),
+        "password123",
+    )
+    .await
+    .unwrap();
     assert!(svc.find_by_email(&email).await.unwrap().is_some());
 }
 
@@ -106,7 +131,12 @@ async fn change_password_succeeds_with_correct_current() {
     let svc = UserService::new(pool);
     let email = unique_email("cp");
     let (user, _) = svc
-        .create(&email, email_display(&email), &unique_username("cp"), "old-pass")
+        .create(
+            &email,
+            email_display(&email),
+            &unique_username("cp"),
+            "old-pass",
+        )
         .await
         .unwrap();
     svc.change_password(user.id, "old-pass", "new-pass123")
@@ -120,7 +150,12 @@ async fn change_password_rejects_wrong_current() {
     let svc = UserService::new(pool);
     let email = unique_email("cpw");
     let (user, _) = svc
-        .create(&email, email_display(&email), &unique_username("cpw"), "correct")
+        .create(
+            &email,
+            email_display(&email),
+            &unique_username("cpw"),
+            "correct",
+        )
         .await
         .unwrap();
     let err = svc
@@ -136,7 +171,12 @@ async fn update_role_persists_new_role() {
     let svc = UserService::new(pool);
     let email = unique_email("ur");
     let (user, _) = svc
-        .create(&email, email_display(&email), &unique_username("ur"), "password123")
+        .create(
+            &email,
+            email_display(&email),
+            &unique_username("ur"),
+            "password123",
+        )
         .await
         .unwrap();
     let updated = svc.update_role(user.id, Role::Admin).await.unwrap();
@@ -160,7 +200,12 @@ async fn deactivate_sets_is_active_false() {
     let svc = UserService::new(pool);
     let email = unique_email("da");
     let (user, _) = svc
-        .create(&email, email_display(&email), &unique_username("da"), "password123")
+        .create(
+            &email,
+            email_display(&email),
+            &unique_username("da"),
+            "password123",
+        )
         .await
         .unwrap();
     svc.deactivate(user.id).await.unwrap();
@@ -174,7 +219,12 @@ async fn find_local_credential_returns_some_for_local_user() {
     let svc = UserService::new(pool);
     let email = unique_email("flc");
     let (user, _) = svc
-        .create(&email, email_display(&email), &unique_username("flc"), "password123")
+        .create(
+            &email,
+            email_display(&email),
+            &unique_username("flc"),
+            "password123",
+        )
         .await
         .unwrap();
 
@@ -238,9 +288,7 @@ async fn create_from_oauth_duplicate_email_returns_email_taken() {
     let svc = UserService::new(pool);
     let email = unique_email("cfo-dup");
 
-    svc.create_from_oauth(&email, Some("First"))
-        .await
-        .unwrap();
+    svc.create_from_oauth(&email, Some("First")).await.unwrap();
 
     let err = svc
         .create_from_oauth(&email, Some("Second"))
@@ -269,7 +317,12 @@ async fn find_by_oauth_identity_returns_user_when_linked() {
     let svc = UserService::new(pool);
     let email = unique_email("fboi");
     let (user, _) = svc
-        .create(&email, email_display(&email), &unique_username("fboi"), "password123")
+        .create(
+            &email,
+            email_display(&email),
+            &unique_username("fboi"),
+            "password123",
+        )
         .await
         .unwrap();
 
@@ -297,7 +350,12 @@ async fn link_oauth_account_links_successfully() {
     let svc = UserService::new(pool);
     let email = unique_email("loa");
     let (user, _) = svc
-        .create(&email, email_display(&email), &unique_username("loa"), "password123")
+        .create(
+            &email,
+            email_display(&email),
+            &unique_username("loa"),
+            "password123",
+        )
         .await
         .unwrap();
 
@@ -326,7 +384,12 @@ async fn link_oauth_account_is_idempotent() {
     let svc = UserService::new(pool);
     let email = unique_email("loai");
     let (user, _) = svc
-        .create(&email, email_display(&email), &unique_username("loai"), "password123")
+        .create(
+            &email,
+            email_display(&email),
+            &unique_username("loai"),
+            "password123",
+        )
         .await
         .unwrap();
 
@@ -351,7 +414,12 @@ async fn list_oauth_connections_returns_empty_list_initially() {
     let svc = UserService::new(pool);
     let email = unique_email("loce");
     let (user, _) = svc
-        .create(&email, email_display(&email), &unique_username("loce"), "password123")
+        .create(
+            &email,
+            email_display(&email),
+            &unique_username("loce"),
+            "password123",
+        )
         .await
         .unwrap();
 
@@ -365,7 +433,12 @@ async fn list_oauth_connections_returns_linked_providers() {
     let svc = UserService::new(pool);
     let email = unique_email("locl");
     let (user, _) = svc
-        .create(&email, email_display(&email), &unique_username("locl"), "password123")
+        .create(
+            &email,
+            email_display(&email),
+            &unique_username("locl"),
+            "password123",
+        )
         .await
         .unwrap();
 
@@ -410,7 +483,12 @@ async fn unlink_oauth_account_removes_link() {
     let svc = UserService::new(pool);
     let email = unique_email("uoa");
     let (user, _) = svc
-        .create(&email, email_display(&email), &unique_username("uoa"), "password123")
+        .create(
+            &email,
+            email_display(&email),
+            &unique_username("uoa"),
+            "password123",
+        )
         .await
         .unwrap();
 
@@ -437,7 +515,12 @@ async fn unlink_oauth_account_returns_not_found_for_missing_link() {
     let svc = UserService::new(pool);
     let email = unique_email("uoa-nf");
     let (user, _) = svc
-        .create(&email, email_display(&email), &unique_username("uoa-nf"), "password123")
+        .create(
+            &email,
+            email_display(&email),
+            &unique_username("uoa-nf"),
+            "password123",
+        )
         .await
         .unwrap();
 

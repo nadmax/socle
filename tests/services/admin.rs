@@ -12,7 +12,12 @@ async fn update_user_role_promotes_to_admin() {
     let user_svc = UserService::new(pool);
     let email = unique_email("pr");
     let (user, _) = user_svc
-        .create(&email, email.split('@').next().unwrap(), &unique_username("pr"), "pass123")
+        .create(
+            &email,
+            email.split('@').next().unwrap(),
+            &unique_username("pr"),
+            "pass123",
+        )
         .await
         .unwrap();
 
@@ -32,7 +37,12 @@ async fn update_user_role_demotes_to_guest() {
     let user_svc = UserService::new(pool);
     let email = unique_email("dm");
     let (user, _) = user_svc
-        .create(&email, email.split('@').next().unwrap(), &unique_username("dm"), "pass123")
+        .create(
+            &email,
+            email.split('@').next().unwrap(),
+            &unique_username("dm"),
+            "pass123",
+        )
         .await
         .unwrap();
 
@@ -52,7 +62,12 @@ async fn self_role_change_returns_forbidden() {
     let user_svc = UserService::new(pool);
     let email = unique_email("self");
     let (user, _) = user_svc
-        .create(&email, email.split('@').next().unwrap(), &unique_username("self"), "pass123")
+        .create(
+            &email,
+            email.split('@').next().unwrap(),
+            &unique_username("self"),
+            "pass123",
+        )
         .await
         .unwrap();
 

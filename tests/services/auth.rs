@@ -89,7 +89,12 @@ async fn login_disabled_account_returns_account_disabled() {
     let username = unique_username("dis");
     let password = "password123";
     let (user, _) = user_svc
-        .create(&email, email.split('@').next().unwrap(), &username, password)
+        .create(
+            &email,
+            email.split('@').next().unwrap(),
+            &username,
+            password,
+        )
         .await
         .unwrap();
     user_svc.deactivate(user.id).await.unwrap();
@@ -211,7 +216,12 @@ async fn login_or_register_oauth_rejects_disabled_account() {
 
     let username = unique_username("dis-oa");
     let (created, _) = user_svc
-        .create(&email, email.split('@').next().unwrap(), &username, "password123")
+        .create(
+            &email,
+            email.split('@').next().unwrap(),
+            &username,
+            "password123",
+        )
         .await
         .unwrap();
     user_svc.deactivate(created.id).await.unwrap();

@@ -1,13 +1,13 @@
+use sqlx::postgres::PgPoolOptions;
+use uuid::Uuid;
 use yaima::{
     config::Config,
     errors::AppError,
     models::{AuthMethod, Role},
     services::token::{TokenService, hash_password, verify_password},
 };
-use sqlx::postgres::PgPoolOptions;
-use uuid::Uuid;
 
-use crate::common::{test_pool, test_config, unique_email, unique_username};
+use crate::common::{test_config, test_pool, unique_email, unique_username};
 
 fn svc() -> TokenService {
     let pool = PgPoolOptions::new()
@@ -47,7 +47,13 @@ async fn generated_token_validates_successfully() {
 async fn tampered_signature_is_rejected() {
     let svc = svc();
     let mut tok = svc
-        .generate_access_token(Uuid::now_v7(), "a@test.com", "alice", Role::User, AuthMethod::Password)
+        .generate_access_token(
+            Uuid::now_v7(),
+            "a@test.com",
+            "alice",
+            Role::User,
+            AuthMethod::Password,
+        )
         .unwrap();
     let last = tok.pop().unwrap();
     tok.push(if last == 'a' { 'b' } else { 'a' });
@@ -62,7 +68,13 @@ async fn tampered_signature_is_rejected() {
 async fn token_signed_with_different_secret_is_rejected() {
     let svc = svc();
     let tok = svc
-        .generate_access_token(Uuid::now_v7(), "a@test.com", "alice", Role::User, AuthMethod::Password)
+        .generate_access_token(
+            Uuid::now_v7(),
+            "a@test.com",
+            "alice",
+            Role::User,
+            AuthMethod::Password,
+        )
         .unwrap();
 
     let other = TokenService::new(
@@ -92,7 +104,13 @@ async fn role_is_round_tripped_through_token() {
     let svc = svc();
     for role in [Role::Guest, Role::User, Role::Admin] {
         let tok = svc
-            .generate_access_token(Uuid::now_v7(), "x@test.com", "x", role, AuthMethod::Password)
+            .generate_access_token(
+                Uuid::now_v7(),
+                "x@test.com",
+                "x",
+                role,
+                AuthMethod::Password,
+            )
             .unwrap();
         let claims = svc.validate_access_token(&tok).unwrap();
         assert_eq!(claims.role, role);
@@ -127,7 +145,12 @@ async fn create_user_for_token_tests() -> uuid::Uuid {
     let svc = UserService::new(pool);
     let email = unique_email("tt");
     let (user, _) = svc
-        .create(&email, email.split('@').next().unwrap(), &unique_username("tt"), "password123")
+        .create(
+            &email,
+            email.split('@').next().unwrap(),
+            &unique_username("tt"),
+            "password123",
+        )
         .await
         .unwrap();
     user.id

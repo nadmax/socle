@@ -2,7 +2,9 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use argon2::{
     Argon2,
-    password_hash::{PasswordHash, PasswordHasher, PasswordVerifier, SaltString, rand_core::OsRng as ArgonOsRng},
+    password_hash::{
+        PasswordHash, PasswordHasher, PasswordVerifier, SaltString, rand_core::OsRng as ArgonOsRng,
+    },
 };
 use jsonwebtoken::{DecodingKey, EncodingKey, Header, Validation, decode, encode};
 use sqlx::PgPool;

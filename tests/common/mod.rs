@@ -4,9 +4,9 @@ use axum_test::TestServer;
 use sqlx::{PgPool, postgres::PgPoolOptions};
 use std::env;
 
+use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
 use std::sync::atomic::Ordering;
-use std::sync::Arc;
 
 use yaima::{
     config::Config,
@@ -43,10 +43,12 @@ pub async fn test_pool() -> PgPool {
         .compare_exchange(false, true, Ordering::AcqRel, Ordering::Relaxed)
         .is_ok()
     {
-        sqlx::query!("TRUNCATE TABLE users, refresh_tokens, oauth_credentials, local_credentials CASCADE")
-            .execute(&pool)
-            .await
-            .expect("failed to clean test tables");
+        sqlx::query!(
+            "TRUNCATE TABLE users, refresh_tokens, oauth_credentials, local_credentials CASCADE"
+        )
+        .execute(&pool)
+        .await
+        .expect("failed to clean test tables");
     }
 
     pool

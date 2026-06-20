@@ -110,15 +110,16 @@ async fn build_authorization_url_returns_valid_google_url() {
     let store = test_store();
     let cfg = google_cfg();
 
-    let req: AuthorizationRequest =
-        build_authorization_url(OAuthProvider::Google, &cfg, &store)
-            .await
-            .unwrap();
+    let req: AuthorizationRequest = build_authorization_url(OAuthProvider::Google, &cfg, &store)
+        .await
+        .unwrap();
 
     let url_str = req.url.to_string();
     assert!(url_str.starts_with("https://accounts.google.com/o/oauth2/v2/auth"));
     assert!(url_str.contains("client_id=test-client-id"));
-    assert!(url_str.contains("redirect_uri=http%3A%2F%2Flocalhost%3A8080%2Fauth%2Fgoogle%2Fcallback"));
+    assert!(
+        url_str.contains("redirect_uri=http%3A%2F%2Flocalhost%3A8080%2Fauth%2Fgoogle%2Fcallback")
+    );
     assert!(url_str.contains("code_challenge"));
     assert!(url_str.contains("state="));
 }

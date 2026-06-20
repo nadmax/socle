@@ -4,8 +4,14 @@ use yaima::config::{OAuthConfig, OAuthProvider, OAuthProviderConfig};
 
 #[test]
 fn oauth_provider_from_slug_returns_some_for_known() {
-    assert_eq!(OAuthProvider::from_slug("google"), Some(OAuthProvider::Google));
-    assert_eq!(OAuthProvider::from_slug("github"), Some(OAuthProvider::GitHub));
+    assert_eq!(
+        OAuthProvider::from_slug("google"),
+        Some(OAuthProvider::Google)
+    );
+    assert_eq!(
+        OAuthProvider::from_slug("github"),
+        Some(OAuthProvider::GitHub)
+    );
 }
 
 #[test]

@@ -59,8 +59,13 @@ async fn change_password_succeeds_and_new_password_works() {
 #[tokio::test]
 async fn change_password_wrong_current_returns_401() {
     let (s, _) = test_server().await;
-    let (token, _) =
-        register_user(&s, &unique_email("cpw"), &unique_username("cpw"), "correct1").await;
+    let (token, _) = register_user(
+        &s,
+        &unique_email("cpw"),
+        &unique_username("cpw"),
+        "correct1",
+    )
+    .await;
 
     let res = s
         .put("/users/me/password")

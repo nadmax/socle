@@ -228,9 +228,7 @@ async fn authorize_unconfigured_provider_returns_503() {
 async fn callback_unknown_provider_returns_404() {
     let (s, _) = test_server().await;
 
-    let res = s
-        .get("/auth/unknown/callback?code=dummy&state=dummy")
-        .await;
+    let res = s.get("/auth/unknown/callback?code=dummy&state=dummy").await;
 
     assert_eq!(res.status_code().as_u16(), 404);
     assert_eq!(
@@ -299,10 +297,7 @@ async fn list_connections_as_guest_returns_403() {
         .json();
     let token = body["access_token"].as_str().unwrap();
 
-    let res = s
-        .get("/auth/connections")
-        .authorization_bearer(token)
-        .await;
+    let res = s.get("/auth/connections").authorization_bearer(token).await;
 
     assert_eq!(res.status_code().as_u16(), 403);
     assert_eq!(

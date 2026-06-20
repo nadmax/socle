@@ -17,7 +17,13 @@ async fn admin_updates_user_role_via_http() {
     let target_id = target_body["user"]["id"].as_str().unwrap().to_owned();
 
     let admin_email = unique_email("admin-au");
-    let (_, _) = register_user(&s, &admin_email, &unique_username("admin-au"), "password123").await;
+    let (_, _) = register_user(
+        &s,
+        &admin_email,
+        &unique_username("admin-au"),
+        "password123",
+    )
+    .await;
     let admin_token = make_admin(&s, &pool, &admin_email, "password123").await;
 
     let res = s
@@ -119,13 +125,7 @@ async fn guest_cannot_access_admin_endpoint() {
 async fn admin_cannot_change_own_role() {
     let (s, pool) = test_server().await;
     let admin_email = unique_email("ascr");
-    let (_, _) = register_user(
-        &s,
-        &admin_email,
-        &unique_username("ascr"),
-        "password123",
-    )
-    .await;
+    let (_, _) = register_user(&s, &admin_email, &unique_username("ascr"), "password123").await;
     let admin_token = make_admin(&s, &pool, &admin_email, "password123").await;
 
     let admin_body: serde_json::Value = s
@@ -152,13 +152,7 @@ async fn admin_cannot_change_own_role() {
 async fn admin_update_unknown_user_returns_404() {
     let (s, pool) = test_server().await;
     let admin_email = unique_email("auu");
-    let (_, _) = register_user(
-        &s,
-        &admin_email,
-        &unique_username("auu"),
-        "password123",
-    )
-    .await;
+    let (_, _) = register_user(&s, &admin_email, &unique_username("auu"), "password123").await;
     let admin_token = make_admin(&s, &pool, &admin_email, "password123").await;
 
     let res = s
