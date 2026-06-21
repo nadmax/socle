@@ -13,12 +13,12 @@ pub struct Config {
     /// Secret used to sign JWT access tokens. Must be at least 32 bytes.
     pub jwt_secret: String,
 
-    /// Redis connection URL used for the OAuth PKCE state store.
+    /// Valkey connection URL used for the OAuth PKCE state store.
     ///
     /// Example: `redis://127.0.0.1:6379`
     /// Required when any OAuth provider is configured; the application will
     /// panic at startup if OAuth is enabled but this is absent.
-    pub redis_url: String,
+    pub valkey_url: String,
 
     /// Access token lifetime in seconds (default: 15 minutes).
     #[serde(default = "default_access_token_expiry")]

@@ -1,7 +1,7 @@
 use sqlx::postgres::PgPoolOptions;
 use uuid::Uuid;
 use yaima::{
-    config::Config,
+    config::{Config, OAuthConfig},
     errors::AppError,
     models::{AuthMethod, Role},
     services::token::{TokenService, hash_password, verify_password},
@@ -20,11 +20,11 @@ fn svc() -> TokenService {
         Config {
             database_url: String::new(),
             jwt_secret: "unit-test-secret-long-enough-32xx".to_owned(),
-            redis_url: String::new(),
+            valkey_url: String::new(),
             access_token_expiry_secs: 3600,
             refresh_token_expiry_secs: 86_400,
             bind_addr: String::new(),
-            oauth: Default::default(),
+            oauth: OAuthConfig::default(),
         },
     )
 }
@@ -85,11 +85,11 @@ async fn token_signed_with_different_secret_is_rejected() {
         Config {
             jwt_secret: "completely-different-secret-32xxx".to_owned(),
             database_url: String::new(),
-            redis_url: String::new(),
+            valkey_url: String::new(),
             access_token_expiry_secs: 3600,
             refresh_token_expiry_secs: 86_400,
             bind_addr: String::new(),
-            oauth: Default::default(),
+            oauth: OAuthConfig::default(),
         },
     );
 

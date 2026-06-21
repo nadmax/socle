@@ -44,7 +44,7 @@ make prek-install
 # Configure .env file
 cp .env.example .env
 
-# Start Postgres and Redis containers
+# Start Postgres and Valkey containers
 make docker-up
 
 # Run database migrations

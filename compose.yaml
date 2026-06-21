@@ -17,18 +17,16 @@ services:
       timeout: 5s
       retries: 5
 
-  redis:
-    image: redis:8-alpine
+  valkey:
+    image: valkey/valkey:9.1.0-alpine
     ports:
       - "6379:6379"
     networks:
       - backend
     volumes:
-      - redisdata:/data
-    environment:
-      REDIS_URL: ${REDIS_URL}
+      - valkeydata:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD", "valkey-cli", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -39,4 +37,4 @@ networks:
 
 volumes:
   pgdata:
-  redisdata:
+  valkeydata:
