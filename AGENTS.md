@@ -15,11 +15,11 @@ refresh-token rotation, OAuth 2.0 (Google, GitHub), role-based access
 ```sh
 cargo install sqlx-cli --no-default-features --features postgres
 cargo install prek
-make prek-install          # once, before any changes
+just prek-install          # once, before any changes
 cp .env.example .env       # then fill in: DATABASE_URL, JWT_SECRET (≥32 chars), VALKEY_URL
-make docker-up             # starts Postgres + Valkey containers
-make migrate               # apply migrations (server also auto-migrates on start)
-make prepare               # regenerate .sqlx offline cache (includes --tests flag)
+just docker-up             # starts Postgres + Valkey containers
+just migrate               # apply migrations (server also auto-migrates on start)
+just prepare               # regenerate .sqlx offline cache (includes --tests flag)
 ```
 
 **Valkey is always required** — the app creates a connection pool at startup even
@@ -29,15 +29,15 @@ without OAuth providers configured.
 
 | Command | What it does |
 |---|---|
-| `make dev` | `cargo run` |
-| `make build` | Release build (`--release --locked`) |
-| `make test` | Full suite (unit + integration) |
-| `make lint` | `cargo clippy` with `-D warnings -W clippy::pedantic` |
-| `make fmt` / `make prepare` | Format code / Regenerate `.sqlx` cache |
-| `make prepare-check` | Verify `.sqlx` cache is fresh (also enforced by CI) |
-| `make migrate-add` / `make migrate-revert` / `make migrate-fresh` | Migration helpers |
+| `just dev` | `cargo run` |
+| `just build` | Release build (`--release --locked`) |
+| `just test` | Full suite (unit + integration) |
+| `just lint` | `cargo clippy` with `-D warnings -W clippy::pedantic` |
+| `just fmt` / `just prepare` | Format code / Regenerate `.sqlx` cache |
+| `just prepare-check` | Verify `.sqlx` cache is fresh (also enforced by CI) |
+| `just migrate-add` / `just migrate-revert` / `just migrate-fresh` | Migration helpers |
 
-**If you add or change a SQL query:** run `make prepare` and commit the `.sqlx`
+**If you add or change a SQL query:** run `just prepare` and commit the `.sqlx`
 changes. CI uses `SQLX_OFFLINE: true` and requires an up-to-date cache.
 
 ## Project structure
@@ -79,9 +79,9 @@ All errors are in `src/errors.rs`:
 ## Testing
 
 ```sh
-make docker-up   # Postgres + Redis must be running
-make migrate     # apply migrations (tests also auto-migrate their pool)
-make test
+just docker-up   # Postgres + Redis must be running
+just migrate     # apply migrations (tests also auto-migrate their pool)
+just test
 ```
 
 - Integration tests spin up a real app against a real DB.
@@ -91,7 +91,7 @@ make test
 
 ## CI quirks
 
-CI runs `cargo fmt --check`, `cargo build`, `cargo test` (no `make` wrapper).
+CI runs `cargo fmt --check`, `cargo build`, `cargo test` (no `just` wrapper).
 It sets `SQLX_OFFLINE: true` and a dummy `JWT_SECRET: test` — no Docker, no
 database needed for compilation.
 
@@ -104,11 +104,11 @@ State is stored in Redis (PKCE + CSRF), consumed atomically, 10-minute TTL.
 
 ## Hard boundaries
 
-- Don't hand-edit `.sqlx/` files — run `make prepare`.
+- Don't hand-edit `.sqlx/` files — run `just prepare`.
 - Don't add standalone error types — extend `AppError` / `OAuthError` in `errors.rs`.
 - Don't weaken role checks (`AuthUser`/`RequireUser`/`RequireAdmin` in middleware).
 - Don't change existing client-facing error codes.
-- Don't run `make migrate-fresh` on anything but a local dev DB.
+- Don't run `just migrate-fresh` on anything but a local dev DB.
 - Don't disable `clippy::pedantic` repo-wide — use `#[expect(...)]` on the site.
 - Don't bypass prek hooks (`--no-verify`).
 
@@ -120,5 +120,5 @@ Commits: [Conventional Commits](https://www.conventionalcommits.org/).
 Before PR:
 
 ```sh
-make fmt && make lint && make prepare-check && make test && make prek-run
+just fmt && just lint && just prepare-check && just test && just prek-run
 ```

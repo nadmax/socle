@@ -18,7 +18,7 @@
 Ensure the following tools are installed:
 
 * Rust
-* Make
+* Just
 * Docker
 * `sqlx-cli`
 * `prek`
@@ -39,22 +39,22 @@ git clone https://github.com/nadmax/yaima.git
 cd yaima
 
 # Install Git hooks
-make prek-install
+just prek-install
 
 # Configure .env file
 cp .env.example .env
 
 # Start Postgres and Valkey containers
-make docker-up
+just docker-up
 
 # Run database migrations
-make migrate
+just migrate
 
 # Prepare SQLx offline metadata
-make prepare
+just prepare
 
 # Run the project
-make dev
+just dev
 ```
 
 Docs will be available at [http://localhost:8080/apidocs](http://localhost:8080/apidocs)
