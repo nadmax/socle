@@ -104,7 +104,7 @@ async fn main() -> anyhow::Result<()> {
     let user = UserService::new(pool.clone());
     let token = TokenService::new(pool.clone(), config.clone());
     let auth = AuthService::new(user.clone(), token.clone(), config.clone());
-    let oauth_store = StateStore::new(&config.redis_url)
+    let oauth_store = StateStore::new(&config.valkey_url)
         .expect("failed to create OAuth state store")
         .shared();
     let state = AppState::new(auth, user, token, config.clone(), oauth_store);

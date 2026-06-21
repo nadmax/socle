@@ -16,13 +16,13 @@ refresh-token rotation, OAuth 2.0 (Google, GitHub), role-based access
 cargo install sqlx-cli --no-default-features --features postgres
 cargo install prek
 make prek-install          # once, before any changes
-cp .env.example .env       # then fill in: DATABASE_URL, JWT_SECRET (≥32 chars), REDIS_URL
-make docker-up             # starts Postgres + Redis containers
+cp .env.example .env       # then fill in: DATABASE_URL, JWT_SECRET (≥32 chars), VALKEY_URL
+make docker-up             # starts Postgres + Valkey containers
 make migrate               # apply migrations (server also auto-migrates on start)
 make prepare               # regenerate .sqlx offline cache (includes --tests flag)
 ```
 
-**Redis is always required** — the app creates a connection pool at startup even
+**Valkey is always required** — the app creates a connection pool at startup even
 without OAuth providers configured.
 
 ## Key commands

@@ -10,7 +10,7 @@ use crate::common::test_config;
 
 fn test_store() -> Arc<StateStore> {
     let config = test_config();
-    Arc::new(StateStore::new(&config.redis_url).unwrap())
+    Arc::new(StateStore::new(&config.valkey_url).unwrap())
 }
 
 fn google_cfg() -> OAuthProviderConfig {
@@ -30,7 +30,7 @@ fn state_store_new_returns_error_for_invalid_url() {
 #[test]
 fn state_store_new_succeeds_for_valid_url() {
     let config = test_config();
-    let store = StateStore::new(&config.redis_url);
+    let store = StateStore::new(&config.valkey_url);
     assert!(store.is_ok());
 }
 

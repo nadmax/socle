@@ -14,7 +14,7 @@ use crate::common::{test_config, test_pool};
 async fn app_state_new_constructs_all_services() {
     let pool = test_pool().await;
     let config = test_config();
-    let oauth_store = Arc::new(StateStore::new(&config.redis_url).unwrap());
+    let oauth_store = Arc::new(StateStore::new(&config.valkey_url).unwrap());
     let user = UserService::new(pool.clone());
     let token = TokenService::new(pool.clone(), config.clone());
     let auth = AuthService::new(user.clone(), token.clone(), config.clone());

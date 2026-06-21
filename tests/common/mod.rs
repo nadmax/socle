@@ -9,7 +9,7 @@ use std::sync::atomic::AtomicBool;
 use std::sync::atomic::Ordering;
 
 use yaima::{
-    config::Config,
+    config::{Config, OAuthConfig},
     routes,
     services::{auth::AuthService, oauth::StateStore, token::TokenService, user::UserService},
     state::AppState,
@@ -59,11 +59,11 @@ pub fn test_config() -> Config {
     Config {
         database_url: String::new(),
         jwt_secret: "test-secret-that-is-long-enough-32+".to_owned(),
-        redis_url: "redis://127.0.0.1:6379".to_owned(),
+        valkey_url: "redis://127.0.0.1:6379".to_owned(),
         access_token_expiry_secs: 3600,
         refresh_token_expiry_secs: 86_400,
         bind_addr: "0.0.0.0:0".to_owned(),
-        oauth: Default::default(),
+        oauth: OAuthConfig::default(),
     }
 }
 
@@ -73,7 +73,7 @@ pub async fn test_app() -> (Router, PgPool) {
     let config = test_config();
 
     let oauth_store = Arc::new(
-        StateStore::new(&config.redis_url).expect("failed to create oauth state store for tests"),
+        StateStore::new(&config.valkey_url).expect("failed to create oauth state store for tests"),
     );
     let user = UserService::new(pool.clone());
     let token = TokenService::new(pool.clone(), config.clone());

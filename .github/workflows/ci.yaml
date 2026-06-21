@@ -11,7 +11,7 @@ env:
   JWT_SECRET: test
   SQLX_OFFLINE: true
   DATABASE_URL: postgres://test:test@localhost:5432/test
-  REDIS_URL: redis://localhost:6379
+  VALKEY_URL: redis://localhost:6379
 
 jobs:
   check-commits:
@@ -71,12 +71,12 @@ jobs:
           --health-timeout 5s
           --health-retries 5
 
-      redis:
-        image: redis:7
+      valkey:
+        image: valkey/valkey:9.1.0-alpine
         ports:
           - 6379:6379
         options: >-
-          --health-cmd "redis-cli ping"
+          --health-cmd "valkey-cli ping"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5

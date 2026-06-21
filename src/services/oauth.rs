@@ -12,7 +12,7 @@ use url::Url;
 use crate::config::{OAuthProvider, OAuthProviderConfig};
 use crate::errors::OAuthError;
 
-/// Serialised form of a pending authorization, stored as a JSON string in Redis.
+/// Serialised form of a pending authorization, stored as a JSON string in Valkey.
 ///
 /// Only the fields that need to survive the round-trip are included.
 /// `PkceCodeVerifier` is a newtype over `String` so we store its secret directly.
@@ -24,7 +24,7 @@ struct StoredPendingAuth {
     provider: String,
 }
 
-/// Redis-backed store for short-lived PKCE/CSRF state tokens.
+/// Valkey-backed store for short-lived PKCE/CSRF state tokens.
 ///
 /// Each entry is keyed by the opaque `state` string that travels to the
 /// provider and back. Keys are set with a TTL of [`STATE_TTL_SECS`] and are
@@ -32,27 +32,27 @@ struct StoredPendingAuth {
 ///
 /// # Multi-instance behaviour
 ///
-/// Because state is stored in Redis rather than process memory, any number of
+/// Because state is stored in Valkey rather than process memory, any number of
 /// application replicas can handle the callback for an authorization that was
 /// initiated on a different instance.
 pub struct StateStore {
     pool: RedisPool,
 }
 
-/// Lifetime of a pending authorization entry in Redis (seconds).
+/// Lifetime of a pending authorization entry in Valkey (seconds).
 const STATE_TTL_SECS: u64 = 600; // 10 minutes
 
 /// Namespace prefix for all OAuth state keys.
 const KEY_PREFIX: &str = "oauth_state:";
 
 impl StateStore {
-    /// Construct a [`StateStore`] from a Redis connection URL.
+    /// Construct a [`StateStore`] from a Valkey connection URL.
     ///
     /// # Errors
     ///
     /// Returns an error if the URL is invalid or the pool cannot be created.
-    pub fn new(redis_url: &str) -> Result<Self, deadpool_redis::CreatePoolError> {
-        let cfg = RedisConfig::from_url(redis_url);
+    pub fn new(valkey_url: &str) -> Result<Self, deadpool_redis::CreatePoolError> {
+        let cfg = RedisConfig::from_url(valkey_url);
         let pool = cfg.create_pool(Some(Runtime::Tokio1))?;
         Ok(Self { pool })
     }
