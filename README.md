@@ -13,89 +13,47 @@
     </a>
 </p>
 
-## Features
-
-* Built with Axum and Tokio for high-performance async workloads
-* Role-based authorization (`Guest`, `User`, `Admin`)
-* Account deactivation with refresh token revocation
-* Admin role assignment and user management endpoints
-* OpenAPI specification generation and Swagger UI
-* PostgreSQL persistence powered by SQLx
-* Structured error responses with stable error codes
-
 ## Prerequisites
 
 Ensure the following tools are installed:
 
-* Rust **1.95** or newer
+* Rust
 * Make
 * Docker
-* PostgreSQL 18+
 * `sqlx-cli`
 * `prek`
 
-Install `sqlx-cli`:
-
 ```sh
+# Install sqlx-cli
 cargo install sqlx-cli --no-default-features --features postgres
-```
 
-Install `prek`:
-
-```sh
+# Install prek
 cargo install prek
 ```
 
-## Quick Start
-
-1. Clone the repository
+## Getting Started
 
 ```sh
+# Clone the repository
 git clone https://github.com/nadmax/yaima.git
 cd yaima
-```
 
-2. Install Git hooks
-
-```sh
+# Install Git hooks
 make prek-install
-```
 
-3. Configure the environment
-
-```sh
+# Configure .env file
 cp .env.example .env
-```
 
-Minimal configuration:
-
-```sh
-DATABASE_URL=postgres://...
-JWT_SECRET=your-secret-at-least-32-characters
-```
-
-4. Start dependencies
-Start Postgres and Redis containers:
-
-```sh
+# Start Postgres and Redis containers
 make docker-up
-```
 
-5. Run database migrations
-
-```sh
+# Run database migrations
 make migrate
-```
 
-6. Prepare SQLx offline metadata
-
-```sh
+# Prepare SQLx offline metadata
 make prepare
-```
 
-7. Start the API
-
-```sh
+# Run the project
 make dev
 ```
 
