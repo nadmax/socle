@@ -17,28 +17,28 @@ Local setup is covered in the [README Quick Start](https://github.com/nadmax/yai
 
 ## Development Workflow
 
-All common tasks are wrapped in `make` targets. Run `make help` at any time to see the full list with descriptions.
+All common tasks are wrapped in `just` recipes. Run `just --list` at any time to see the full list with descriptions.
 
 ### Application
 
 | Target | What it does |
 |---|---|
-| `make dev` | Run the app locally with `cargo run` |
-| `make build` | Compile a release binary (`--release --locked`) |
-| `make test` | Run the full test suite (unit + integration) |
-| `make lint` | Run `cargo clippy` — all warnings and pedantic lints are errors |
-| `make fmt` | Format code |
+| `just dev` | Run the app locally with `cargo run` |
+| `just build` | Compile a release binary (`--release --locked`) |
+| `just test` | Run the full test suite (unit + integration) |
+| `just lint` | Run `cargo clippy` — all warnings and pedantic lints are errors |
+| `just fmt` | Format code |
 
 ### Database & Migrations
 
 | Target | What it does |
 |---|---|
-| `make docker-up` | Start all services |
-| `make docker-down` | Stop all services |
-| `make migrate` | Apply all pending migrations |
-| `make migrate-revert` | Revert the last applied migration |
-| `make migrate-add` | Prompt for a name and create a new reversible migration file |
-| `make migrate-fresh` | Drop the database, recreate it, and replay all migrations from scratch |
+| `just docker-up` | Start all services |
+| `just docker-down` | Stop all services |
+| `just migrate` | Apply all pending migrations |
+| `just migrate-revert` | Revert the last applied migration |
+| `just migrate-add` | Create a new reversible migration (usage: `just migrate-add <name>`) |
+| `just migrate-fresh` | Drop the database, recreate it, and replay all migrations from scratch |
 
 ### SQLx Offline Cache
 
@@ -46,10 +46,10 @@ The project uses `sqlx` with compile-time query checking. The `.sqlx` query cach
 
 | Target | What it does |
 |---|---|
-| `make prepare` | Regenerate the `.sqlx` cache from current queries |
-| `make prepare-check` | Verify the cache matches current queries (runs in CI) |
+| `just prepare` | Regenerate the `.sqlx` cache from current queries |
+| `just prepare-check` | Verify the cache matches current queries (runs in CI) |
 
-Always run `make prepare` after touching a SQL query and commit the resulting `.sqlx` changes alongside your code. CI runs `make prepare-check` and will fail if the cache is stale.
+Always run `just prepare` after touching a SQL query and commit the resulting `.sqlx` changes alongside your code. CI runs `just prepare-check` and will fail if the cache is stale.
 
 ### Prek
 
@@ -57,14 +57,14 @@ The repository uses [`prek`](https://github.com/j178/prek) to manage Git hooks d
 
 | Target | What it does |
 |---|---|
-| `make prek-install` | Install the Git hooks **(run this once after cloning)** |
-| `make prek-run` | Run all hooks manually against the working tree |
-| `make prek-list` | List every configured hook and its status |
-| `make prek-validate` | Validate `prek.toml` for syntax errors |
-| `make prek-update` | Auto-update hooks to their latest versions |
-| `make prek-cache-clean` | Clear the prek hook cache |
+| `just prek-install` | Install the Git hooks **(run this once after cloning)** |
+| `just prek-run` | Run all hooks manually against the working tree |
+| `just prek-list` | List every configured hook and its status |
+| `just prek-validate` | Validate `prek.toml` for syntax errors |
+| `just prek-update` | Auto-update hooks to their latest versions |
+| `just prek-cache-clean` | Clear the prek hook cache |
 
-After cloning, run `make prek-install` before making any changes so the pre-commit hooks are active.
+After cloning, run `just prek-install` before making any changes so the pre-commit hooks are active.
 
 ## Project Structure
 
@@ -131,18 +131,17 @@ Public items (types, functions, trait impls) must have `///` doc comments explai
 
 ## Running Tests
 ```sh
-make test
+just test
 ```
 
 Integration tests under `tests/` spin up a real application instance against a test database. Before running them, make sure the database container is up and migrations are applied:
 
 ```sh
-make docker-db       # start the database container
-make migrate         # apply any pending migrations
-make test            # now run the full suite
+just migrate         # apply any pending migrations
+just test            # now run the full suite
 ```
 
-If your schema is out of date or you want a clean slate, use `make migrate-fresh` to drop and recreate the database before running tests.
+If your schema is out of date or you want a clean slate, use `just migrate-fresh` to drop and recreate the database before running tests.
 
 Test names follow the pattern `<subject>_should_<expected_outcome>_when_<condition>` — for example, `login_should_return_401_when_password_is_wrong`. Aim for one logical assertion per test.
 
