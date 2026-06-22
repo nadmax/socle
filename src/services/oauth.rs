@@ -12,6 +12,12 @@ use url::Url;
 use crate::config::{OAuthProvider, OAuthProviderConfig};
 use crate::errors::OAuthError;
 
+/// User-Agent string sent to upstream API providers (GitHub, Google, etc.).
+///
+/// Derived from Cargo package metadata so every build reliably identifies
+/// this application.
+pub const APP_USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION"));
+
 #[derive(Serialize, Deserialize)]
 struct StoredPendingAuth {
     /// The raw PKCE verifier secret.
@@ -359,6 +365,7 @@ async fn fetch_google_profile(access_token: &str) -> Result<OAuthProfile, OAuthE
     let info: GoogleUserInfo = reqwest::Client::new()
         .get("https://www.googleapis.com/oauth2/v3/userinfo")
         .bearer_auth(access_token)
+        .header(reqwest::header::USER_AGENT, APP_USER_AGENT)
         .send()
         .await
         .map_err(|e| OAuthError::ProviderUnreachable(e.to_string()))?
@@ -383,7 +390,7 @@ async fn fetch_github_profile(access_token: &str) -> Result<OAuthProfile, OAuthE
     let info: GitHubUserInfo = client
         .get("https://api.github.com/user")
         .bearer_auth(access_token)
-        .header(reqwest::header::USER_AGENT, "your-app-name")
+        .header(reqwest::header::USER_AGENT, APP_USER_AGENT)
         .send()
         .await
         .map_err(|e| OAuthError::ProviderUnreachable(e.to_string()))?
@@ -414,7 +421,7 @@ async fn fetch_github_primary_email(
     let emails: Vec<GitHubEmail> = client
         .get("https://api.github.com/user/emails")
         .bearer_auth(access_token)
-        .header(reqwest::header::USER_AGENT, "your-app-name")
+        .header(reqwest::header::USER_AGENT, APP_USER_AGENT)
         .send()
         .await
         .map_err(|e| OAuthError::ProviderUnreachable(e.to_string()))?
@@ -429,4 +436,16 @@ async fn fetch_github_primary_email(
         .find(|e| e.primary && e.verified)
         .map(|e| e.email)
         .ok_or(OAuthError::IncompleteProfile("email"))
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn user_agent_is_not_placeholder() {
+        assert_ne!(
+            super::APP_USER_AGENT,
+            "your-app-name",
+            "User-Agent must be set from Cargo package metadata, not a placeholder"
+        );
+    }
 }
