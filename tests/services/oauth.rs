@@ -141,3 +141,13 @@ async fn build_authorization_url_returns_valid_github_url() {
     assert!(url_str.starts_with("https://github.com/login/oauth/authorize"));
     assert!(url_str.contains("client_id=gh-client"));
 }
+
+#[test]
+fn user_agent_is_not_placeholder() {
+    let ua = yaima::services::oauth::APP_USER_AGENT;
+    assert_ne!(
+        ua, "your-app-name",
+        "User-Agent must be set from Cargo package metadata, not a placeholder"
+    );
+    assert!(ua.contains('/'), "User-Agent should contain name/version");
+}
