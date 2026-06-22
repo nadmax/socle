@@ -4006,6 +4006,7 @@ dependencies = [
  "oauth2",
  "redis",
  "reqwest 0.13.4",
+ "ring",
  "serde",
  "serde_json",
  "sqlx",

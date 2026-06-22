@@ -4,7 +4,7 @@ use yaima::{
     config::{Config, OAuthConfig},
     errors::AppError,
     models::{AuthMethod, Role},
-    services::token::{TokenService, hash_password, verify_password},
+    services::token::{TokenService, hash_password, hash_refresh_token, verify_password},
 };
 
 use crate::common::{test_config, test_pool, unique_email, unique_username};
@@ -134,6 +134,14 @@ fn identical_passwords_produce_different_hashes() {
     let h1 = hash_password("same").unwrap();
     let h2 = hash_password("same").unwrap();
     assert_ne!(h1, h2, "Argon2 must salt each hash independently");
+}
+
+#[test]
+fn identical_tokens_produce_different_hashes() {
+    let token = "some-raw-token-value-123";
+    let h1 = hash_refresh_token(token);
+    let h2 = hash_refresh_token(token);
+    assert_ne!(h1, h2, "each refresh token hash must use a fresh random salt");
 }
 
 use yaima::services::user::UserService;
