@@ -7,6 +7,7 @@ use argon2::{
     },
 };
 use jsonwebtoken::{DecodingKey, EncodingKey, Header, Validation, decode, encode};
+use ring::hmac;
 use sqlx::PgPool;
 use time::{Duration, OffsetDateTime};
 use uuid::Uuid;
@@ -21,6 +22,7 @@ use crate::{
 struct RefreshTokenRow {
     id: Uuid,
     user_id: Uuid,
+    token_hash: String,
     expires_at: time::OffsetDateTime,
     revoked: bool,
 }
@@ -30,17 +32,12 @@ struct RefreshTokenRow {
 pub struct TokenService {
     pool: PgPool,
     config: Config,
-    salt: SaltString,
 }
 
 impl TokenService {
     #[must_use]
     pub fn new(pool: PgPool, config: Config) -> Self {
-        Self {
-            pool,
-            config,
-            salt: SaltString::generate(&mut ArgonOsRng),
-        }
+        Self { pool, config }
     }
 
     /// Encode a new signed JWT access token for the given user.
@@ -104,19 +101,21 @@ impl TokenService {
     /// insert fails.
     pub async fn create_refresh_token(&self, user_id: Uuid) -> AppResult<String> {
         let raw = generate_opaque_token();
-        let token_hash = self.hash_refresh_token(&raw);
+        let token_hash = hash_refresh_token(&raw);
+        let lookup_key = self.compute_lookup_key(&raw);
 
         let expires_at = OffsetDateTime::now_utc()
             + Duration::seconds(self.config.refresh_token_expiry_secs.cast_signed());
 
         sqlx::query!(
             r#"
-            INSERT INTO refresh_tokens (id, user_id, token_hash, expires_at)
-            VALUES ($1, $2, $3, $4)
+            INSERT INTO refresh_tokens (id, user_id, token_hash, lookup_key, expires_at)
+            VALUES ($1, $2, $3, $4, $5)
             "#,
             Uuid::now_v7(),
             user_id,
             token_hash,
+            lookup_key,
             expires_at,
         )
         .execute(&self.pool)
@@ -136,16 +135,16 @@ impl TokenService {
     /// revoked, or expired — in the latter two cases all tokens for that user are
     /// also revoked proactively. Returns an [`AppError`] if any database call fails.
     pub async fn rotate_refresh_token(&self, raw_token: &str) -> AppResult<(String, Uuid)> {
-        let hash = self.hash_refresh_token(raw_token);
+        let lookup_key = self.compute_lookup_key(raw_token);
 
         let record: RefreshTokenRow = sqlx::query_as!(
             RefreshTokenRow,
             r#"
-            SELECT id, user_id, expires_at, revoked
+            SELECT id, user_id, token_hash, expires_at, revoked
             FROM refresh_tokens
-            WHERE token_hash = $1
+            WHERE lookup_key = $1
             "#,
-            hash,
+            lookup_key,
         )
         .fetch_optional(&self.pool)
         .await?
@@ -155,6 +154,12 @@ impl TokenService {
             self.revoke_all_user_tokens(record.user_id).await?;
             return Err(AppError::RefreshTokenInvalid);
         }
+
+        let parsed =
+            PasswordHash::new(&record.token_hash).map_err(|_| AppError::RefreshTokenInvalid)?;
+        Argon2::default()
+            .verify_password(raw_token.as_bytes(), &parsed)
+            .map_err(|_| AppError::RefreshTokenInvalid)?;
 
         sqlx::query!(
             "UPDATE refresh_tokens SET revoked = TRUE WHERE id = $1",
@@ -182,12 +187,24 @@ impl TokenService {
         Ok(())
     }
 
-    fn hash_refresh_token(&self, raw: &str) -> String {
-        Argon2::default()
-            .hash_password(raw.as_bytes(), &self.salt)
-            .expect("Argon2 hashing is infallible with a valid salt")
-            .to_string()
+    fn compute_lookup_key(&self, raw: &str) -> String {
+        let key = hmac::Key::new(hmac::HMAC_SHA256, self.config.jwt_secret.as_bytes());
+        hex::encode(hmac::sign(&key, raw.as_bytes()).as_ref())
     }
+}
+
+/// Hash a raw refresh token with a fresh random salt, producing a self-contained
+/// Argon2 hash string (salt embedded in the output).
+///
+/// # Panics
+///
+/// Panics if Argon2 hashing fails, which should never happen with a valid salt.
+pub fn hash_refresh_token(raw: &str) -> String {
+    let salt = SaltString::generate(&mut ArgonOsRng);
+    Argon2::default()
+        .hash_password(raw.as_bytes(), &salt)
+        .expect("Argon2 hashing is infallible with a valid salt")
+        .to_string()
 }
 
 /// Generate a cryptographically-random 256-bit token encoded as hex.

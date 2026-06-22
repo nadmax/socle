@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            SELECT id, user_id, expires_at, revoked\n            FROM refresh_tokens\n            WHERE token_hash = $1\n            ",
+  "query": "\n            SELECT id, user_id, token_hash, expires_at, revoked\n            FROM refresh_tokens\n            WHERE lookup_key = $1\n            ",
   "describe": {
     "columns": [
       {
@@ -27,6 +27,17 @@
       },
       {
         "ordinal": 2,
+        "name": "token_hash",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "refresh_tokens",
+            "name": "token_hash"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
         "name": "expires_at",
         "type_info": "Timestamptz",
         "origin": {
@@ -37,7 +48,7 @@
         }
       },
       {
-        "ordinal": 3,
+        "ordinal": 4,
         "name": "revoked",
         "type_info": "Bool",
         "origin": {
@@ -57,8 +68,9 @@
       false,
       false,
       false,
+      false,
       false
     ]
   },
-  "hash": "0955490ee45b69f1dc48bce6123c70be47274d9f562491f6136e173665f233d5"
+  "hash": "96502a47b7bad61ae6a4b23be77569376e044cde525e80667243dfdf37f01a27"
 }
