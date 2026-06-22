@@ -141,7 +141,10 @@ fn identical_tokens_produce_different_hashes() {
     let token = "some-raw-token-value-123";
     let h1 = hash_refresh_token(token);
     let h2 = hash_refresh_token(token);
-    assert_ne!(h1, h2, "each refresh token hash must use a fresh random salt");
+    assert_ne!(
+        h1, h2,
+        "each refresh token hash must use a fresh random salt"
+    );
 }
 
 use yaima::services::user::UserService;

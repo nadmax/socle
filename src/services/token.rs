@@ -155,7 +155,8 @@ impl TokenService {
             return Err(AppError::RefreshTokenInvalid);
         }
 
-        let parsed = PasswordHash::new(&record.token_hash).map_err(|_| AppError::RefreshTokenInvalid)?;
+        let parsed =
+            PasswordHash::new(&record.token_hash).map_err(|_| AppError::RefreshTokenInvalid)?;
         Argon2::default()
             .verify_password(raw_token.as_bytes(), &parsed)
             .map_err(|_| AppError::RefreshTokenInvalid)?;
