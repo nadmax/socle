@@ -116,8 +116,8 @@ State is stored in Redis (PKCE + CSRF), consumed atomically, 10-minute TTL.
 
 - **Branch:** `<type>/<description>` where type is `feat|fix|chore|docs|refactor|test`.
 - **Commits:** [Conventional Commits](https://www.conventionalcommits.org/) — always include a scope (e.g. `feat(auth):`, `fix(oauth):`).
-- **PR description:** Follow `.github/PULL_REQUEST_TEMPLATE.md` — fill in What, Why,
-  Changes, Testing, and optionally Notes.
+- **PR description:** Markdown, following `.github/PULL_REQUEST_TEMPLATE.md` — fill in
+  What, Why, Changes, Testing, and optionally Notes.
 
 Before PR:
 
