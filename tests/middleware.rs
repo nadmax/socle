@@ -36,7 +36,6 @@ fn returns_none_for_bearer_prefix_without_token() {
         axum::http::header::AUTHORIZATION,
         HeaderValue::from_static("Bearer "),
     );
-    // Strip prefix yields an empty string, which is still Some("").
-    // Callers reject empty tokens; the extractor just strips the prefix.
+
     assert_eq!(extract_bearer(&headers), Some(""));
 }

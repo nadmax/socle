@@ -43,7 +43,6 @@ impl AuthService {
         validate_password(password)?;
         validate_username(username)?;
 
-        // Use email prefix as display_name on registration; users can update it later.
         let display_name = email.split('@').next().unwrap_or(username);
         let (user, credential) = self
             .user
@@ -82,8 +81,6 @@ impl AuthService {
             return Err(AppError::AccountDisabled);
         }
 
-        // OAuth-only accounts have no local credential row; treat identically
-        // to a wrong password to avoid leaking account existence.
         let credential: LocalCredential = self
             .user
             .find_local_credential(user.id)
@@ -125,14 +122,11 @@ impl AuthService {
         }
 
         let credential = self.user.find_local_credential(user.id).await?;
-
-        // A missing local credential means this is an OAuth-only account.
         let auth_method = if credential.is_some() {
             AuthMethod::Password
         } else {
             AuthMethod::OAuth
         };
-
         let access_token = self.token.generate_access_token(
             user.id,
             &user.email,
@@ -193,8 +187,6 @@ impl AuthService {
             return Err(AppError::AccountDisabled);
         }
 
-        // A merged account (OAuth + password) still has a local credential;
-        // include it so `has_local_credential` is accurate in the response.
         let credential = self.user.find_local_credential(user.id).await?;
 
         self.issue_tokens(

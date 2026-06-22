@@ -1,6 +1,10 @@
+use std::sync::Arc;
+
 use serde_json::json;
 
-use crate::common::{register_user, test_server, unique_email, unique_username};
+use yaima::services::oauth::StateStore;
+
+use crate::common::{register_user, test_config, test_server, unique_email, unique_username};
 
 #[tokio::test]
 async fn register_returns_201_and_user_role() {
@@ -195,8 +199,6 @@ async fn logout_revokes_refresh_token() {
         .await;
     assert_eq!(res.status_code().as_u16(), 401);
 }
-
-// ── OAuth route tests ────────────────────────────────────────────────────────
 
 #[tokio::test]
 async fn authorize_unknown_provider_returns_404() {
@@ -411,5 +413,80 @@ async fn unlink_non_existent_connection_returns_404() {
     assert_eq!(
         res.json::<serde_json::Value>()["error"]["code"],
         "USER_NOT_FOUND"
+    );
+}
+
+#[tokio::test]
+async fn session_invalid_code_returns_401() {
+    let (s, _) = test_server().await;
+
+    let res = s
+        .post("/auth/session")
+        .json(&json!({ "code": "non-existent-code" }))
+        .await;
+
+    assert_eq!(res.status_code().as_u16(), 401);
+    assert_eq!(
+        res.json::<serde_json::Value>()["error"]["code"],
+        "EXCHANGE_CODE_INVALID"
+    );
+}
+
+#[tokio::test]
+async fn session_valid_code_returns_auth_response() {
+    let (s, _) = test_server().await;
+    let email = unique_email("svc");
+    let username = unique_username("svc");
+    let register_body: serde_json::Value = s
+        .post("/auth/register")
+        .json(&json!({ "email": email, "username": username, "password": "password123" }))
+        .await
+        .json();
+
+    let config = test_config();
+    let store = Arc::new(StateStore::new(&config.valkey_url).unwrap());
+    let code = "test-valid-exchange-code";
+    store
+        .store_exchange(code, &register_body.to_string())
+        .await
+        .unwrap();
+
+    let res = s.post("/auth/session").json(&json!({ "code": code })).await;
+
+    res.assert_status_success();
+    let body: serde_json::Value = res.json();
+    assert!(body["access_token"].is_string());
+    assert!(body["refresh_token"].is_string());
+    assert!(body["user"]["email"].is_string());
+}
+
+#[tokio::test]
+async fn session_code_is_single_use() {
+    let (s, _) = test_server().await;
+
+    let email = unique_email("ssu");
+    let username = unique_username("ssu");
+    let register_body: serde_json::Value = s
+        .post("/auth/register")
+        .json(&json!({ "email": email, "username": username, "password": "password123" }))
+        .await
+        .json();
+
+    let config = test_config();
+    let store = Arc::new(StateStore::new(&config.valkey_url).unwrap());
+    let code = "test-single-use-code";
+    store
+        .store_exchange(code, &register_body.to_string())
+        .await
+        .unwrap();
+
+    let res1 = s.post("/auth/session").json(&json!({ "code": code })).await;
+    res1.assert_status_success();
+
+    let res2 = s.post("/auth/session").json(&json!({ "code": code })).await;
+    assert_eq!(res2.status_code().as_u16(), 401);
+    assert_eq!(
+        res2.json::<serde_json::Value>()["error"]["code"],
+        "EXCHANGE_CODE_INVALID"
     );
 }

@@ -181,6 +181,11 @@ pub enum OAuthError {
     /// The provider slug in the URL path did not match any known provider.
     #[error("unknown OAuth provider: '{0}'")]
     UnknownProvider(String),
+
+    /// The one-time exchange code submitted to `POST /auth/session` was never
+    /// issued, expired, or was already consumed.
+    #[error("exchange code is invalid or expired")]
+    ExchangeCodeInvalid,
 }
 
 impl OAuthError {
@@ -189,7 +194,9 @@ impl OAuthError {
             Self::ProviderNotConfigured(_) | Self::StateStore(_) | Self::StateStoreRedis(_) => {
                 StatusCode::SERVICE_UNAVAILABLE
             }
-            Self::InvalidState | Self::ProviderMismatch { .. } => StatusCode::UNAUTHORIZED,
+            Self::InvalidState | Self::ProviderMismatch { .. } | Self::ExchangeCodeInvalid => {
+                StatusCode::UNAUTHORIZED
+            }
             Self::TokenExchange(_) | Self::ProviderUnreachable(_) | Self::IncompleteProfile(_) => {
                 StatusCode::BAD_GATEWAY
             }
@@ -212,6 +219,7 @@ impl OAuthError {
             Self::StateStoreRedis(_) => "OAUTH_STATE_STORE_ERROR",
             Self::ProviderDenied { .. } => "OAUTH_PROVIDER_DENIED",
             Self::UnknownProvider(_) => "OAUTH_UNKNOWN_PROVIDER",
+            Self::ExchangeCodeInvalid => "EXCHANGE_CODE_INVALID",
         }
     }
 }

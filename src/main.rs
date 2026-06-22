@@ -62,9 +62,6 @@ use state::AppState;
 )]
 struct ApiDoc;
 
-/// Injects the `bearer_auth` HTTP security scheme into the generated `OpenAPI`
-/// document. utoipa v5 does not support `security_schemes` inside the
-/// `components()` macro attribute — schemes must be added via `Modify`.
 struct BearerSecurityAddon;
 
 impl Modify for BearerSecurityAddon {
@@ -123,7 +120,6 @@ async fn main() -> anyhow::Result<()> {
     Ok(())
 }
 
-/// Liveness probe (Returns `200 OK` with a JSON body).
 #[utoipa::path(
     get,
     path = "/health",

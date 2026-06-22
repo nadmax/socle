@@ -76,7 +76,6 @@ where
     }
 }
 
-/// Return `Err(AppError::Forbidden)` if the claims do not meet the minimum role.
 fn require_role(claims: &Claims, minimum: Role) -> AppResult<()> {
     if claims.role.is_at_least(minimum) {
         Ok(())
