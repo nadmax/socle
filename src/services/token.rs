@@ -17,8 +17,6 @@ use crate::{
     models::{AuthMethod, Claims, Role},
 };
 
-/// Minimal projection of a `refresh_tokens` row.
-/// Only the columns we actually read after the query are selected.
 #[derive(sqlx::FromRow)]
 struct RefreshTokenRow {
     id: Uuid,
@@ -184,11 +182,6 @@ impl TokenService {
         Ok(())
     }
 
-    /// Deterministic Argon2id hash of the raw refresh token value.
-    ///
-    /// The salt is generated once at construction time and reused for all
-    /// calls, making the output **deterministic** so the same raw token
-    /// always produces the same database lookup value.
     fn hash_refresh_token(&self, raw: &str) -> String {
         Argon2::default()
             .hash_password(raw.as_bytes(), &self.salt)
@@ -198,7 +191,7 @@ impl TokenService {
 }
 
 /// Generate a cryptographically-random 256-bit token encoded as hex.
-fn generate_opaque_token() -> String {
+pub(crate) fn generate_opaque_token() -> String {
     let mut bytes = [0u8; 32];
     getrandom::fill(&mut bytes).expect("OS RNG failed");
     hex::encode(bytes)

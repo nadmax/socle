@@ -14,9 +14,11 @@ pub struct AppState {
     pub auth: AuthService,
     pub user: UserService,
     pub token: TokenService,
+
     /// Application configuration, used by OAuth routes to look up provider
     /// credentials without a separate service layer.
     pub config: Config,
+
     /// Short-lived PKCE/CSRF state store for the OAuth 2.0 flow.
     pub oauth_store: Arc<StateStore>,
 }

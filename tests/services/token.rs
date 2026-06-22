@@ -136,8 +136,6 @@ fn identical_passwords_produce_different_hashes() {
     assert_ne!(h1, h2, "Argon2 must salt each hash independently");
 }
 
-// ── DB-backed integration tests ──────────────────────────────────────────────
-
 use yaima::services::user::UserService;
 
 async fn create_user_for_token_tests() -> uuid::Uuid {

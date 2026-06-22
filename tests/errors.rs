@@ -3,7 +3,6 @@ mod common;
 use axum::response::IntoResponse;
 use yaima::errors::AppError;
 
-/// Each error variant must map to the documented HTTP status and stable code.
 #[test]
 fn error_http_mapping_is_stable() {
     let cases: Vec<(&str, AppError, u16)> = vec![

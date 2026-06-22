@@ -12,10 +12,6 @@ use url::Url;
 use crate::config::{OAuthProvider, OAuthProviderConfig};
 use crate::errors::OAuthError;
 
-/// Serialised form of a pending authorization, stored as a JSON string in Valkey.
-///
-/// Only the fields that need to survive the round-trip are included.
-/// `PkceCodeVerifier` is a newtype over `String` so we store its secret directly.
 #[derive(Serialize, Deserialize)]
 struct StoredPendingAuth {
     /// The raw PKCE verifier secret.
@@ -39,11 +35,10 @@ pub struct StateStore {
     pool: RedisPool,
 }
 
-/// Lifetime of a pending authorization entry in Valkey (seconds).
 const STATE_TTL_SECS: u64 = 600; // 10 minutes
-
-/// Namespace prefix for all OAuth state keys.
 const KEY_PREFIX: &str = "oauth_state:";
+const EXCHANGE_PREFIX: &str = "oauth_exchange:";
+const EXCHANGE_TTL_SECS: u64 = 120;
 
 impl StateStore {
     /// Construct a [`StateStore`] from a Valkey connection URL.
@@ -83,7 +78,6 @@ impl StateStore {
             verifier_secret: verifier.secret().clone(),
             provider: provider.to_string(),
         })
-        // StoredPendingAuth only contains String fields; serialisation cannot fail.
         .expect("StoredPendingAuth serialisation is infallible");
 
         let key = format!("{KEY_PREFIX}{state}");
@@ -112,9 +106,6 @@ impl StateStore {
     ) -> Result<PkceCodeVerifier, OAuthError> {
         let key = format!("{KEY_PREFIX}{state}");
         let mut conn = self.pool.get().await.map_err(OAuthError::StateStore)?;
-
-        // GETDEL atomically returns the value and removes the key in one round-trip.
-        // Available since Redis 6.2; for older Redis use a MULTI/EXEC pipeline.
         let raw: Option<String> = conn
             .get_del(&key)
             .await
@@ -132,6 +123,42 @@ impl StateStore {
 
         Ok(PkceCodeVerifier::new(stored.verifier_secret))
     }
+
+    /// Persist a serialised auth response keyed by a one-time exchange code.
+    ///
+    /// The frontend calls `POST /auth/session` with this code to retrieve the
+    /// actual JWT. The entry expires after [`EXCHANGE_TTL_SECS`] and is consumed
+    /// atomically on retrieval.
+    ///
+    /// # Errors
+    ///
+    /// Returns an [`OAuthError`] if the Valkey connection or write fails.
+    pub async fn store_exchange(&self, code: &str, payload: &str) -> Result<(), OAuthError> {
+        let key = format!("{EXCHANGE_PREFIX}{code}");
+        let mut conn = self.pool.get().await.map_err(OAuthError::StateStore)?;
+        conn.set_ex::<_, _, ()>(&key, payload, EXCHANGE_TTL_SECS)
+            .await
+            .map_err(OAuthError::StateStoreRedis)?;
+        Ok(())
+    }
+
+    /// Atomically retrieve and delete a stored exchange payload.
+    ///
+    /// Returns [`OAuthError::ExchangeCodeInvalid`] when the code is unknown,
+    /// expired, or already consumed.
+    ///
+    /// # Errors
+    ///
+    /// Returns an [`OAuthError`] if the Valkey connection fails.
+    pub async fn take_exchange(&self, code: &str) -> Result<String, OAuthError> {
+        let key = format!("{EXCHANGE_PREFIX}{code}");
+        let mut conn = self.pool.get().await.map_err(OAuthError::StateStore)?;
+        let raw: Option<String> = conn
+            .get_del(&key)
+            .await
+            .map_err(OAuthError::StateStoreRedis)?;
+        raw.ok_or(OAuthError::ExchangeCodeInvalid)
+    }
 }
 
 /// Provider-agnostic user identity returned after a successful OAuth flow.
@@ -142,16 +169,20 @@ impl StateStore {
 pub struct OAuthProfile {
     /// Which provider authenticated this user.
     pub provider: OAuthProvider,
+
     /// The user's stable, unique identifier within that provider.
     pub provider_user_id: String,
+
     /// Primary email address as reported by the provider.
     ///
     /// Treat with care: not all providers verify email addresses.
     /// Google and GitHub both do, so this field is trusted for account merging
     /// only for those two providers.
     pub email: String,
+
     /// Human-readable display name, if the provider exposes one.
     pub display_name: Option<String>,
+
     /// Public avatar URL, if available.
     pub avatar_url: Option<String>,
 }
@@ -297,8 +328,6 @@ pub async fn fetch_user_profile(
     }
 }
 
-/// Static provider endpoints. Extending to a third provider means adding one
-/// arm here and in `provider_scopes`.
 fn provider_endpoints(provider: OAuthProvider) -> (&'static str, &'static str) {
     match provider {
         OAuthProvider::Google => (
@@ -312,7 +341,6 @@ fn provider_endpoints(provider: OAuthProvider) -> (&'static str, &'static str) {
     }
 }
 
-/// Scopes to request from each provider.
 fn provider_scopes(provider: OAuthProvider) -> Vec<Scope> {
     match provider {
         OAuthProvider::Google => vec![
@@ -379,10 +407,6 @@ async fn fetch_github_profile(access_token: &str) -> Result<OAuthProfile, OAuthE
     })
 }
 
-/// Fetch the primary verified email from GitHub's `/user/emails` endpoint.
-///
-/// This is a separate request; it is only made when the public profile omits
-/// the email (common for users who mark it private).
 async fn fetch_github_primary_email(
     client: &reqwest::Client,
     access_token: &str,

@@ -229,6 +229,13 @@ pub struct ChangePasswordRequest {
     pub new_password: String,
 }
 
+/// Payload for `POST /auth/session` — exchange a one-time OAuth code for tokens.
+#[derive(Debug, Deserialize, ToSchema)]
+pub struct ExchangeRequest {
+    /// One-time code received from the OAuth callback redirect.
+    pub code: String,
+}
+
 /// Payload for `PUT /admin/users/:id/role`.
 #[derive(Debug, Deserialize, ToSchema)]
 pub struct UpdateRoleRequest {
@@ -236,7 +243,7 @@ pub struct UpdateRoleRequest {
 }
 
 /// Returned by `/auth/register` and `/auth/login`.
-#[derive(Debug, Serialize, ToSchema)]
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct AuthResponse {
     /// Short-lived JWT Bearer token.
     pub access_token: String,
@@ -255,7 +262,7 @@ pub struct AuthResponse {
 ///
 /// `has_local_credential` lets the admin UI decide whether a "reset password"
 /// action is applicable — it is `false` for OAuth-only accounts.
-#[derive(Debug, Serialize, ToSchema)]
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct UserResponse {
     pub id: Uuid,
     pub email: String,
@@ -308,6 +315,7 @@ pub struct UserResponse {
 /// ```
 pub struct UserView {
     pub user: User,
+
     /// `None` for OAuth-only accounts.
     pub local_credential: Option<LocalCredential>,
 }

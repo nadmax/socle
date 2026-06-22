@@ -25,7 +25,6 @@ fn admin_satisfies_all_roles() {
 
 #[test]
 fn role_hierarchy_is_strictly_ordered() {
-    // Guest < User < Admin
     let levels = [Role::Guest, Role::User, Role::Admin];
     for (i, lower) in levels.iter().enumerate() {
         for higher in &levels[i + 1..] {

@@ -110,7 +110,6 @@ impl UserService {
     ) -> AppResult<(User, LocalCredential)> {
         let password_hash = hash_password(password)?;
         let user_id = Uuid::now_v7();
-
         let mut tx = self.pool.begin().await?;
 
         let user = sqlx::query_as!(
@@ -396,8 +395,6 @@ impl UserService {
     }
 }
 
-/// Map a Postgres unique-constraint violation to a specific [`AppError`];
-/// fall through to [`AppError::Database`] for any other error.
 fn map_constraint_err(err: sqlx::Error, constraint: &str, mapped: AppError) -> AppError {
     if let sqlx::Error::Database(ref db_err) = err
         && db_err.code().as_deref() == Some("23505")

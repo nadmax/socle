@@ -12,10 +12,10 @@ use crate::{
     errors::{AppError, AppResult, OAuthError},
     middleware::{AuthUser, RequireUser},
     models::{
-        AuthResponse, LoginRequest, MessageResponse, OAuthConnection, RefreshRequest,
-        RegisterRequest,
+        AuthResponse, ExchangeRequest, LoginRequest, MessageResponse, OAuthConnection,
+        RefreshRequest, RegisterRequest,
     },
-    services::oauth,
+    services::{oauth, token::generate_opaque_token},
     state::AppState,
 };
 
@@ -26,6 +26,7 @@ pub fn router() -> Router<AppState> {
         .route("/auth/login", post(login))
         .route("/auth/refresh", post(refresh))
         .route("/auth/logout", post(logout))
+        .route("/auth/session", post(session))
         .route("/auth/{provider}", get(authorize))
         .route("/auth/{provider}/callback", get(callback))
         .route("/auth/connections", get(list_connections))
@@ -200,6 +201,11 @@ pub struct CallbackParams {
 /// 5. Find or create a local account and link the `OAuthAccount` relation.
 /// 6. Issue an application JWT using the existing `services/token` logic.
 ///
+/// # Panics
+///
+/// Panics if the `AuthResponse` cannot be serialised to JSON. All its fields
+/// are serialisable so this is infallible in practice.
+///
 /// # Errors
 ///
 /// Returns `400 Bad Request` for missing parameters or provider-reported
@@ -258,16 +264,61 @@ pub async fn callback(
     .await?;
 
     let profile = oauth::fetch_user_profile(provider, &access_token).await?;
-    let response = state.auth.login_or_register_oauth(&profile).await?;
+    let auth = state.auth.login_or_register_oauth(&profile).await?;
+
+    let exchange_code = generate_opaque_token();
+    let payload = serde_json::to_string(&auth).expect("AuthResponse serialisation is infallible");
+    state
+        .oauth_store
+        .store_exchange(&exchange_code, &payload)
+        .await?;
 
     tracing::info!(
-        user_id = %response.user.id,
+        user_id = %auth.user.id,
         %provider,
         "user authenticated via OAuth",
     );
 
-    let redirect_url = format!("/auth/success?token={}", response.access_token);
+    let redirect_url = format!("/auth/success?code={exchange_code}");
     Ok(Redirect::to(&redirect_url))
+}
+
+/// Exchange a one-time OAuth callback code for a real JWT token pair.
+///
+/// The OAuth callback handler redirects the browser to `/auth/success?code=<code>`
+/// with a short-lived one-time code instead of placing the JWT in the URL.
+/// The frontend calls this endpoint to redeem the code and obtain the actual
+/// `access_token` and `refresh_token`.
+///
+/// The code is consumed atomically and cannot be replayed.
+///
+/// # Errors
+///
+/// Returns `401 Unauthorized` if the code is invalid, expired, or already used.
+#[utoipa::path(
+    post,
+    path = "/auth/session",
+    tag = "auth",
+    request_body = ExchangeRequest,
+    responses(
+        (status = 200, description = "Session created",       body = AuthResponse),
+        (status = 401, description = "Code invalid/expired",  body = serde_json::Value),
+    )
+)]
+pub async fn session(
+    State(state): State<AppState>,
+    Json(req): Json<ExchangeRequest>,
+) -> AppResult<Json<AuthResponse>> {
+    let payload = state.oauth_store.take_exchange(&req.code).await?;
+    let auth: AuthResponse = serde_json::from_str(&payload)
+        .map_err(|_| AppError::OAuth(OAuthError::ExchangeCodeInvalid))?;
+
+    tracing::info!(
+        user_id = %auth.user.id,
+        "OAuth session code exchanged",
+    );
+
+    Ok(Json(auth))
 }
 
 /// Resolve a URL path segment to an [`OAuthProvider`], or return `404`.
