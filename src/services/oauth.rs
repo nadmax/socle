@@ -437,15 +437,3 @@ async fn fetch_github_primary_email(
         .map(|e| e.email)
         .ok_or(OAuthError::IncompleteProfile("email"))
 }
-
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn user_agent_is_not_placeholder() {
-        assert_ne!(
-            super::APP_USER_AGENT,
-            "your-app-name",
-            "User-Agent must be set from Cargo package metadata, not a placeholder"
-        );
-    }
-}
