@@ -2,6 +2,7 @@ pub mod config;
 pub mod errors;
 pub mod middleware;
 pub mod models;
+pub mod rate_limit;
 pub mod routes;
 pub mod services;
 pub mod shutdown;

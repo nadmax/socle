@@ -25,6 +25,8 @@ fn svc() -> TokenService {
             refresh_token_expiry_secs: 86_400,
             bind_addr: String::new(),
             shutdown_timeout_secs: 30,
+            auth_rate_limit_max: 10_000,
+            auth_rate_limit_window_secs: 3600,
             oauth: OAuthConfig::default(),
         },
     )
@@ -91,6 +93,8 @@ async fn token_signed_with_different_secret_is_rejected() {
             refresh_token_expiry_secs: 86_400,
             bind_addr: String::new(),
             shutdown_timeout_secs: 30,
+            auth_rate_limit_max: 10_000,
+            auth_rate_limit_window_secs: 3600,
             oauth: OAuthConfig::default(),
         },
     );

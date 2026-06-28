@@ -2,6 +2,7 @@ mod config;
 mod errors;
 mod middleware;
 mod models;
+mod rate_limit;
 mod routes;
 mod services;
 mod shutdown;
@@ -15,6 +16,7 @@ use utoipa::openapi::security::{Http, HttpAuthScheme, SecurityScheme};
 use utoipa::{Modify, OpenApi};
 use utoipa_swagger_ui::SwaggerUi;
 
+use crate::rate_limit::RateLimiter;
 use crate::services::oauth::StateStore;
 use crate::shutdown::shutdown_signal;
 use config::Config;
@@ -110,10 +112,17 @@ async fn main() -> anyhow::Result<()> {
         .expect("failed to create OAuth state store")
         .shared();
     let oauth_store_handle = oauth_store.clone();
-    let state = AppState::new(auth, user, token, config.clone(), oauth_store);
+    let rate_limiter = RateLimiter::new(
+        &config.valkey_url,
+        config.auth_rate_limit_max,
+        config.auth_rate_limit_window_secs,
+    )
+    .expect("failed to create rate limiter");
+    let rate_limiter_handle = rate_limiter.clone();
+    let state = AppState::new(auth, user, token, config.clone(), oauth_store, rate_limiter);
     let app = Router::new()
         .route("/health", get(health))
-        .merge(routes::auth::router())
+        .merge(routes::auth::router(state.rate_limiter.clone()))
         .merge(routes::users::router())
         .merge(routes::admin::router())
         .merge(SwaggerUi::new("/apidocs").url("/api-doc/openapi.json", ApiDoc::openapi()))
@@ -138,6 +147,7 @@ async fn main() -> anyhow::Result<()> {
     tracing::info!("shutting down connection pools");
     pool.close().await;
     oauth_store_handle.close();
+    rate_limiter_handle.close();
 
     tracing::info!("server stopped");
     Ok(())

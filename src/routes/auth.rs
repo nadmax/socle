@@ -1,8 +1,10 @@
 use axum::{
     Json, Router,
+    body::Body,
     extract::{Path, Query, State},
-    http::StatusCode,
-    response::Redirect,
+    http::{Request, StatusCode},
+    middleware::{Next, from_fn_with_state},
+    response::{IntoResponse, Redirect, Response},
     routing::{delete, get, post},
 };
 use serde::Deserialize;
@@ -15,22 +17,77 @@ use crate::{
         AuthResponse, ExchangeRequest, LoginRequest, MessageResponse, OAuthConnection,
         RefreshRequest, RegisterRequest,
     },
+    rate_limit::RateLimiter,
     services::{oauth, token::generate_opaque_token},
     state::AppState,
 };
 
 /// Mount all `/auth/*` routes onto a new [`Router`].
-pub fn router() -> Router<AppState> {
-    Router::new()
-        .route("/auth/register", post(register))
+///
+/// The four unauthenticated POST endpoints (`login`, `register`, `refresh`,
+/// `session`) have the Valkey-backed rate-limiter applied via middleware.
+pub fn router(rate_limiter: RateLimiter) -> Router<AppState> {
+    let inner = Router::new()
         .route("/auth/login", post(login))
+        .route("/auth/register", post(register))
         .route("/auth/refresh", post(refresh))
-        .route("/auth/logout", post(logout))
         .route("/auth/session", post(session))
+        .route_layer(from_fn_with_state(rate_limiter, rate_limit_middleware));
+
+    Router::new()
+        .merge(inner)
+        .route("/auth/logout", post(logout))
         .route("/auth/{provider}", get(authorize))
         .route("/auth/{provider}/callback", get(callback))
         .route("/auth/connections", get(list_connections))
         .route("/auth/connections/{provider}", delete(unlink_connection))
+}
+
+/// Middleware that enforces the per-IP rate limit on auth endpoints.
+async fn rate_limit_middleware(
+    State(limiter): State<RateLimiter>,
+    req: Request<Body>,
+    next: Next,
+) -> Response {
+    let ip = extract_client_ip(&req);
+    let endpoint = endpoint_key(&req);
+
+    match limiter.check(&ip, &endpoint).await {
+        Ok(_) => next.run(req).await,
+        Err(retry_after) => AppError::RateLimited { retry_after }.into_response(),
+    }
+}
+
+/// Best-effort client IP extraction.
+///
+/// Checks `X-Forwarded-For` (first address), falls back to `X-Real-IP`,
+/// then to `"unknown"`.
+fn extract_client_ip(req: &Request<Body>) -> String {
+    if let Some(val) = req.headers().get("x-forwarded-for")
+        && let Ok(s) = val.to_str()
+        && let Some(first) = s.split(',').next()
+    {
+        let trimmed = first.trim();
+        if !trimmed.is_empty() {
+            return trimmed.to_owned();
+        }
+    }
+    if let Some(val) = req.headers().get("x-real-ip")
+        && let Ok(s) = val.to_str()
+    {
+        let trimmed = s.trim();
+        if !trimmed.is_empty() {
+            return trimmed.to_owned();
+        }
+    }
+    "unknown".to_owned()
+}
+
+/// Build a stable endpoint key from the request method and URI path.
+fn endpoint_key(req: &Request<Body>) -> String {
+    let method = req.method().to_string().to_lowercase();
+    let path = req.uri().path().to_owned();
+    format!("{method}:{path}")
 }
 
 /// Register a new user account.
