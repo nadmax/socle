@@ -4,7 +4,10 @@ mod middleware;
 mod models;
 mod routes;
 mod services;
+mod shutdown;
 mod state;
+
+use std::time::Duration;
 
 use axum::{Json, Router, http::StatusCode, routing::get};
 use sqlx::postgres::PgPoolOptions;
@@ -13,6 +16,7 @@ use utoipa::{Modify, OpenApi};
 use utoipa_swagger_ui::SwaggerUi;
 
 use crate::services::oauth::StateStore;
+use crate::shutdown::shutdown_signal;
 use config::Config;
 use services::{auth::AuthService, token::TokenService, user::UserService};
 use state::AppState;
@@ -105,6 +109,7 @@ async fn main() -> anyhow::Result<()> {
     let oauth_store = StateStore::new(&config.valkey_url)
         .expect("failed to create OAuth state store")
         .shared();
+    let oauth_store_handle = oauth_store.clone();
     let state = AppState::new(auth, user, token, config.clone(), oauth_store);
     let app = Router::new()
         .route("/health", get(health))
@@ -116,8 +121,25 @@ async fn main() -> anyhow::Result<()> {
 
     let listener = tokio::net::TcpListener::bind(&config.bind_addr).await?;
     tracing::info!(addr = %config.bind_addr, "server listening");
-    axum::serve(listener, app).await?;
 
+    let serve = axum::serve(listener, app).with_graceful_shutdown(shutdown_signal(None));
+
+    let timeout = Duration::from_secs(config.shutdown_timeout_secs);
+    tokio::select! {
+        result = serve => result?,
+        () = tokio::time::sleep(timeout) => {
+            tracing::warn!(
+                timeout_secs = config.shutdown_timeout_secs,
+                "graceful shutdown timed out, forcing shutdown"
+            );
+        }
+    }
+
+    tracing::info!("shutting down connection pools");
+    pool.close().await;
+    oauth_store_handle.close();
+
+    tracing::info!("server stopped");
     Ok(())
 }
 

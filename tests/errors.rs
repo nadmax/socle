@@ -1,5 +1,3 @@
-mod common;
-
 use axum::response::IntoResponse;
 use yaima::errors::AppError;
 

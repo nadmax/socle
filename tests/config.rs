@@ -1,5 +1,3 @@
-mod common;
-
 use yaima::config::{OAuthConfig, OAuthProvider, OAuthProviderConfig};
 
 #[test]

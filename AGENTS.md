@@ -55,8 +55,9 @@ src/
 └── services/{mod, auth, token, user, admin, oauth}.rs
 
 tests/
+├── mod.rs            # integration test crate root (single binary via `autotests = false`)
 ├── common/mod.rs     # test helpers: test_app(), test_server(), register_user(), make_admin()
-├── errors.rs, middleware.rs, models.rs
+├── config.rs, errors.rs, middleware.rs, models.rs, state.rs, shutdown.rs
 ├── routes/           # integration tests mirror src/routes/
 └── services/         # unit tests mirror src/services/
 ```

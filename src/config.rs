@@ -32,6 +32,11 @@ pub struct Config {
     #[serde(default = "default_bind_addr")]
     pub bind_addr: String,
 
+    /// Maximum time to wait for in-flight requests to complete during graceful
+    /// shutdown (default: 30 seconds).
+    #[serde(default = "default_shutdown_timeout")]
+    pub shutdown_timeout_secs: u64,
+
     /// OAuth 2.0 provider configurations.
     ///
     /// Each provider is optional; the application only enables the providers
@@ -216,4 +221,8 @@ fn default_refresh_token_expiry() -> u64 {
 
 fn default_bind_addr() -> String {
     "0.0.0.0:8080".to_owned()
+}
+
+fn default_shutdown_timeout() -> u64 {
+    30
 }
