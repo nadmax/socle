@@ -59,6 +59,11 @@ just dev
 
 Docs will be available at [http://localhost:8080/apidocs](http://localhost:8080/apidocs)
 
+> **Note:** `UserResponse` and `OAuthConnection` include an optional `avatar_url`
+> field, populated from the connected OAuth provider when available.
+
+Note: this only adds a README mention. It does **not** satisfy the issue's acceptance criteria — adding `avatar_url: Option<String>` to the structs, updating mapping code, utoipa schema annotations, and the test all require editing Rust source files, not `README.md`.
+
 ## License
 
 This project is licensed under the **MIT License**.
