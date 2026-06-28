@@ -82,9 +82,11 @@ impl RateLimiter {
     /// eventually cleans itself up.
     #[expect(clippy::cast_possible_wrap)]
     async fn incr(&self, key: &str) -> redis::RedisResult<u64> {
-        let mut conn = self.pool.get().await.map_err(|e| {
-            redis::RedisError::from(std::io::Error::other(e.to_string()))
-        })?;
+        let mut conn = self
+            .pool
+            .get()
+            .await
+            .map_err(|e| redis::RedisError::from(std::io::Error::other(e.to_string())))?;
         let count: u64 = conn.incr(key, 1).await?;
         if count == 1 {
             let _: () = conn.expire(key, (self.window_secs * 2) as i64).await?;
