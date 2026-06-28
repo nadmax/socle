@@ -12,15 +12,15 @@ RUN cargo chef cook --release --locked --recipe-path recipe.json
 COPY ./ ./
 COPY migrations ./migrations
 ENV SQLX_OFFLINE=true
-RUN cargo build --release --locked --bin yaima
+RUN cargo build --release --locked --bin socle
 
 FROM alpine:3.23 AS runtime
 RUN apk add --no-cache ca-certificates && \
     addgroup -S app && \
     adduser -S app -G app
 WORKDIR /app
-COPY --from=builder /app/target/release/yaima ./
+COPY --from=builder /app/target/release/socle ./
 USER app
 EXPOSE 8080
-ENTRYPOINT ["./yaima"]
+ENTRYPOINT ["./socle"]
 
