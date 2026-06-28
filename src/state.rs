@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use crate::{
     config::Config,
+    rate_limit::RateLimiter,
     services::{auth::AuthService, oauth::StateStore, token::TokenService, user::UserService},
 };
 
@@ -21,6 +22,9 @@ pub struct AppState {
 
     /// Short-lived PKCE/CSRF state store for the OAuth 2.0 flow.
     pub oauth_store: Arc<StateStore>,
+
+    /// Valkey-backed rate limiter for auth endpoints.
+    pub rate_limiter: RateLimiter,
 }
 
 impl AppState {
@@ -31,6 +35,7 @@ impl AppState {
         token: TokenService,
         config: Config,
         oauth_store: Arc<StateStore>,
+        rate_limiter: RateLimiter,
     ) -> Self {
         Self {
             auth,
@@ -38,6 +43,7 @@ impl AppState {
             token,
             config,
             oauth_store,
+            rate_limiter,
         }
     }
 }

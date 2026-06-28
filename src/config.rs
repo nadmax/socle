@@ -37,6 +37,14 @@ pub struct Config {
     #[serde(default = "default_shutdown_timeout")]
     pub shutdown_timeout_secs: u64,
 
+    /// Auth rate‑limit: max requests per window (default: 20).
+    #[serde(default = "default_auth_rate_limit_max")]
+    pub auth_rate_limit_max: u64,
+
+    /// Auth rate‑limit: window duration in seconds (default: 60).
+    #[serde(default = "default_auth_rate_limit_window_secs")]
+    pub auth_rate_limit_window_secs: u64,
+
     /// OAuth 2.0 provider configurations.
     ///
     /// Each provider is optional; the application only enables the providers
@@ -225,4 +233,12 @@ fn default_bind_addr() -> String {
 
 fn default_shutdown_timeout() -> u64 {
     30
+}
+
+fn default_auth_rate_limit_max() -> u64 {
+    20
+}
+
+fn default_auth_rate_limit_window_secs() -> u64 {
+    60
 }

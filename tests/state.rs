@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use socle::{
     config::Config,
+    rate_limit::RateLimiter,
     services::{auth::AuthService, oauth::StateStore, token::TokenService, user::UserService},
     state::AppState,
 };
@@ -13,10 +14,11 @@ async fn app_state_new_constructs_all_services() {
     let pool = test_pool().await;
     let config = test_config();
     let oauth_store = Arc::new(StateStore::new(&config.valkey_url).unwrap());
+    let rate_limiter = RateLimiter::new(&config.valkey_url, 10_000, 3600).unwrap();
     let user = UserService::new(pool.clone());
     let token = TokenService::new(pool.clone(), config.clone());
     let auth = AuthService::new(user.clone(), token.clone(), config.clone());
-    let state = AppState::new(auth, user, token, config, oauth_store);
+    let state = AppState::new(auth, user, token, config, oauth_store, rate_limiter);
 
     let _: &AuthService = &state.auth;
     let _: &UserService = &state.user;

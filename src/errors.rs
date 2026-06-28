@@ -53,6 +53,10 @@ pub enum AppError {
     #[error("internal server error")]
     Internal(#[from] anyhow::Error),
 
+    /// The client has sent too many requests in the current window.
+    #[error("rate limit exceeded, retry after {retry_after}s")]
+    RateLimited { retry_after: u64 },
+
     /// Wraps the full OAuth error hierarchy so any `OAuthError` can be
     /// propagated with `?` inside handlers that return `AppResult`.
     #[error(transparent)]
@@ -70,6 +74,7 @@ impl AppError {
             Self::EmailTaken | Self::UsernameTaken => StatusCode::CONFLICT,
             Self::UserNotFound => StatusCode::NOT_FOUND,
             Self::AccountDisabled | Self::Forbidden => StatusCode::FORBIDDEN,
+            Self::RateLimited { .. } => StatusCode::TOO_MANY_REQUESTS,
             Self::Database(_) | Self::Hashing | Self::Internal(_) => {
                 StatusCode::INTERNAL_SERVER_ERROR
             }
@@ -89,6 +94,7 @@ impl AppError {
             Self::UserNotFound => "USER_NOT_FOUND",
             Self::AccountDisabled => "ACCOUNT_DISABLED",
             Self::Forbidden => "FORBIDDEN",
+            Self::RateLimited { .. } => "RATE_LIMITED",
             Self::Database(_) => "DATABASE_ERROR",
             Self::Hashing => "HASHING_ERROR",
             Self::Internal(_) => "INTERNAL_ERROR",
@@ -114,7 +120,14 @@ impl IntoResponse for AppError {
             "request error"
         );
 
-        (status, Json(body)).into_response()
+        let mut response = (status, Json(body)).into_response();
+        if let Self::RateLimited { retry_after } = self {
+            response.headers_mut().insert(
+                axum::http::header::RETRY_AFTER,
+                retry_after.to_string().parse().unwrap(),
+            );
+        }
+        response
     }
 }
 

@@ -4,7 +4,10 @@ use serde_json::json;
 
 use socle::services::oauth::StateStore;
 
-use crate::common::{register_user, test_config, test_server, unique_email, unique_username};
+use crate::common::{
+    register_user, test_app_with_limits, test_config, test_server, unique_email, unique_ip,
+    unique_username,
+};
 
 #[tokio::test]
 async fn register_returns_201_and_user_role() {
@@ -488,5 +491,306 @@ async fn session_code_is_single_use() {
     assert_eq!(
         res2.json::<serde_json::Value>()["error"]["code"],
         "EXCHANGE_CODE_INVALID"
+    );
+}
+
+// ---------------------------------------------------------------------------
+// Rate‑limiting tests
+// ---------------------------------------------------------------------------
+
+#[tokio::test]
+async fn login_rate_limited_returns_429_when_exceeded() {
+    let (s, _) = test_app_with_limits(3, 60).await;
+    let ip = unique_ip();
+    let email = unique_email("rll");
+    let password = "password123";
+
+    // Register first so the account exists — use the test IP so this does
+    // not collide with other tests running in parallel (they all get their
+    // own IP from unique_ip()).
+    s.post("/auth/register")
+        .add_header("x-forwarded-for", &ip)
+        .json(&json!({ "email": email, "username": unique_username("rll"), "password": password }))
+        .await;
+
+    // Exhaust the limit of 3 requests.
+    for i in 0..3 {
+        let res = s
+            .post("/auth/login")
+            .add_header("x-forwarded-for", &ip)
+            .json(&json!({ "email": email, "password": password }))
+            .await;
+        assert!(
+            res.status_code().as_u16() < 429,
+            "request should not be rate‑limited yet (iter {i}, status {})",
+            res.status_code().as_u16(),
+        );
+    }
+
+    // The 4th request should be rate‑limited.
+    let res = s
+        .post("/auth/login")
+        .add_header("x-forwarded-for", &ip)
+        .json(&json!({ "email": email, "password": password }))
+        .await;
+
+    assert_eq!(res.status_code().as_u16(), 429);
+    assert_eq!(
+        res.json::<serde_json::Value>()["error"]["code"],
+        "RATE_LIMITED"
+    );
+    assert!(res.headers().get("retry-after").is_some());
+}
+
+#[tokio::test]
+async fn register_rate_limited_returns_429_when_exceeded() {
+    let (s, _) = test_app_with_limits(2, 60).await;
+    let ip = unique_ip();
+
+    // Exhaust the limit.
+    for i in 0..2 {
+        let res = s
+            .post("/auth/register")
+            .add_header("x-forwarded-for", &ip)
+            .json(&json!({
+                "email":    unique_email(&format!("rr{}", i)),
+                "username": unique_username(&format!("rr{}", i)),
+                "password": "password123",
+            }))
+            .await;
+        assert!(
+            res.status_code().as_u16() < 429,
+            "request should not be rate‑limited yet (iter {i}, status {})",
+            res.status_code().as_u16(),
+        );
+    }
+
+    let res = s
+        .post("/auth/register")
+        .add_header("x-forwarded-for", &ip)
+        .json(&json!({
+            "email":    unique_email("rrx"),
+            "username": unique_username("rrx"),
+            "password": "password123",
+        }))
+        .await;
+
+    assert_eq!(res.status_code().as_u16(), 429);
+    assert_eq!(
+        res.json::<serde_json::Value>()["error"]["code"],
+        "RATE_LIMITED"
+    );
+    assert!(res.headers().get("retry-after").is_some());
+}
+
+#[tokio::test]
+async fn refresh_rate_limited_returns_429_when_exceeded() {
+    let (s, _) = test_app_with_limits(2, 60).await;
+    let ip = unique_ip();
+    let email = unique_email("rrf");
+    let register_body: serde_json::Value = s
+        .post("/auth/register")
+        .add_header("x-forwarded-for", &ip)
+        .json(&json!({ "email": email, "username": unique_username("rrf"), "password": "password123" }))
+        .await
+        .json();
+    let refresh_token = register_body["refresh_token"].as_str().unwrap().to_owned();
+
+    // Exhaust the limit.
+    for _ in 0..2 {
+        let res = s
+            .post("/auth/refresh")
+            .add_header("x-forwarded-for", &ip)
+            .json(&json!({ "refresh_token": &refresh_token }))
+            .await;
+        assert!(
+            res.status_code().as_u16() < 429,
+            "request should not be rate‑limited yet",
+        );
+    }
+
+    let res = s
+        .post("/auth/refresh")
+        .add_header("x-forwarded-for", &ip)
+        .json(&json!({ "refresh_token": &refresh_token }))
+        .await;
+
+    assert_eq!(res.status_code().as_u16(), 429);
+    assert_eq!(
+        res.json::<serde_json::Value>()["error"]["code"],
+        "RATE_LIMITED"
+    );
+    assert!(res.headers().get("retry-after").is_some());
+}
+
+#[tokio::test]
+async fn session_rate_limited_returns_429_when_exceeded() {
+    let (s, _) = test_app_with_limits(2, 60).await;
+    let ip = unique_ip();
+
+    for _ in 0..2 {
+        let res = s
+            .post("/auth/session")
+            .add_header("x-forwarded-for", &ip)
+            .json(&json!({ "code": "does-not-matter" }))
+            .await;
+        assert!(
+            res.status_code().as_u16() < 429,
+            "request should not be rate‑limited yet",
+        );
+    }
+
+    let res = s
+        .post("/auth/session")
+        .add_header("x-forwarded-for", &ip)
+        .json(&json!({ "code": "does-not-matter" }))
+        .await;
+
+    assert_eq!(res.status_code().as_u16(), 429);
+    assert_eq!(
+        res.json::<serde_json::Value>()["error"]["code"],
+        "RATE_LIMITED"
+    );
+    assert!(res.headers().get("retry-after").is_some());
+}
+
+#[tokio::test]
+async fn rate_limit_resets_after_window_expires() {
+    let (s, _) = test_app_with_limits(2, 2).await; // 2-second window
+    let ip = unique_ip();
+    let email = unique_email("rlw");
+    let password = "password123";
+
+    s.post("/auth/register")
+        .json(&json!({ "email": email, "username": unique_username("rlw"), "password": password }))
+        .await;
+
+    // Exhaust the limit.
+    for _ in 0..2 {
+        let res = s
+            .post("/auth/login")
+            .add_header("x-forwarded-for", &ip)
+            .json(&json!({ "email": email, "password": password }))
+            .await;
+        assert!(
+            res.status_code().as_u16() < 429,
+            "request should not be rate‑limited yet",
+        );
+    }
+
+    // 4th request — rate‑limited.
+    let res = s
+        .post("/auth/login")
+        .add_header("x-forwarded-for", &ip)
+        .json(&json!({ "email": email, "password": password }))
+        .await;
+    assert_eq!(res.status_code().as_u16(), 429);
+
+    // Wait for the window to roll over.
+    tokio::time::sleep(std::time::Duration::from_secs(3)).await;
+
+    let res = s
+        .post("/auth/login")
+        .add_header("x-forwarded-for", &ip)
+        .json(&json!({ "email": email, "password": password }))
+        .await;
+    assert!(
+        res.status_code().as_u16() < 429,
+        "request should succeed after window expiry",
+    );
+}
+
+#[tokio::test]
+async fn rate_limit_does_not_affect_other_endpoints() {
+    let (s, _) = test_app_with_limits(1, 60).await;
+    let ip = unique_ip();
+
+    // Use the one allowed request on login.
+    let res = s
+        .post("/auth/login")
+        .add_header("x-forwarded-for", &ip)
+        .json(&json!({ "email": "any@test.com", "password": "x" }))
+        .await;
+    assert!(
+        res.status_code().as_u16() < 429,
+        "first request should not be rate‑limited",
+    );
+
+    // A second login request from same IP IS rate‑limited.
+    let res = s
+        .post("/auth/login")
+        .add_header("x-forwarded-for", &ip)
+        .json(&json!({ "email": "any@test.com", "password": "x" }))
+        .await;
+    assert_eq!(res.status_code().as_u16(), 429);
+
+    // Logout is NOT rate‑limited — it should return 401 (missing auth)
+    // instead of 429.
+    let res = s.post("/auth/logout").await;
+    assert_eq!(
+        res.status_code().as_u16(),
+        401,
+        "non‑rate‑limited endpoint should not be affected",
+    );
+    assert_eq!(
+        res.json::<serde_json::Value>()["error"]["code"],
+        "MISSING_AUTH_HEADER",
+    );
+}
+
+#[tokio::test]
+async fn rate_limit_response_has_retry_after_header() {
+    let (s, _) = test_app_with_limits(2, 60).await;
+    let ip = unique_ip();
+    let email1 = unique_email("rrh1");
+    let email2 = unique_email("rrh2");
+
+    // Use the one allowed request (max=2, first of 2).
+    let res = s
+        .post("/auth/register")
+        .add_header("x-forwarded-for", &ip)
+        .json(&json!({
+            "email":    email1,
+            "username": unique_username("rrh1"),
+            "password": "password123",
+        }))
+        .await;
+    assert!(
+        res.status_code().as_u16() < 429,
+        "first request should not be rate‑limited",
+    );
+
+    // Second request — rate‑limited (max=2, so 2nd is allowed, 3rd is not).
+    // But we only want to test the header format, so just verify the 3rd is
+    // limited and has the header.
+    let _ = s
+        .post("/auth/register")
+        .add_header("x-forwarded-for", &ip)
+        .json(&json!({
+            "email":    email2,
+            "username": unique_username("rrh2"),
+            "password": "password123",
+        }))
+        .await;
+
+    let res = s
+        .post("/auth/register")
+        .add_header("x-forwarded-for", &ip)
+        .json(&json!({
+            "email":    unique_email("rrh3"),
+            "username": unique_username("rrh3"),
+            "password": "password123",
+        }))
+        .await;
+
+    assert_eq!(res.status_code().as_u16(), 429);
+    let retry_after = res
+        .headers()
+        .get("retry-after")
+        .expect("Retry-After header must be present");
+    let value: u64 = retry_after.to_str().unwrap().parse().unwrap();
+    assert!(
+        (1..=60).contains(&value),
+        "Retry-After should be between 1 and 60, got {value}",
     );
 }
