@@ -58,6 +58,11 @@ impl StateStore {
         Ok(Self { pool })
     }
 
+    /// Close the underlying Valkey connection pool.
+    pub fn close(&self) {
+        self.pool.close();
+    }
+
     /// Wrap in an [`Arc`] for sharing across Axum handler clones.
     #[must_use]
     pub fn shared(self) -> Arc<Self> {

@@ -90,12 +90,16 @@ src/
     └── admin.rs      # Admin business logic
 
 tests/
+├── mod.rs           # Integration test crate root — all test modules declared here
 ├── common/mod.rs    # Shared test helpers (app fixture, database seeding, HTTP client)
+├── config.rs        # Tests for config deserialisation and OAuth provider mapping
 ├── errors.rs        # Tests for error type behaviour and HTTP mapping
 ├── middleware.rs     # Tests for middleware layers in isolation
 ├── models.rs        # Tests for model conversions and validation
-├── routes/          # Integration tests — mirror of src/routes/
-└── services/        # Unit tests for service layer — mirror of src/services/
+├── state.rs         # Tests for AppState construction
+├── shutdown.rs      # Integration test for graceful shutdown
+├── routes/          # Tests — mirror of src/routes/
+└── services/        # Tests — mirror of src/services/
 ```
 
 The `tests/` tree deliberately mirrors `src/`. When you add a new module or change existing behaviour, put the corresponding test file in the matching location under `tests/`.

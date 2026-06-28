@@ -63,6 +63,7 @@ pub fn test_config() -> Config {
         access_token_expiry_secs: 3600,
         refresh_token_expiry_secs: 86_400,
         bind_addr: "0.0.0.0:0".to_owned(),
+        shutdown_timeout_secs: 5,
         oauth: OAuthConfig::default(),
     }
 }

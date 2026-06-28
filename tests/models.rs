@@ -1,5 +1,3 @@
-mod common;
-
 use yaima::models::{MessageResponse, Role};
 
 #[test]
