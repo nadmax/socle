@@ -1,7 +1,7 @@
 use std::time::Duration;
 
+use socle::shutdown::shutdown_signal;
 use tokio::sync::oneshot;
-use yaima::shutdown::shutdown_signal;
 
 use crate::common::test_app;
 

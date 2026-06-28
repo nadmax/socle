@@ -24,9 +24,9 @@ use state::AppState;
 #[derive(OpenApi)]
 #[openapi(
     info(
-        title       = "YAIMA",
+        title       = "Socle",
         version     = "0.1.0",
-        description = "Yet Another Identity Management API",
+        description = "Identity Management API",
     ),
     paths(
         routes::auth::register,

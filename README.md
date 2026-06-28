@@ -35,7 +35,7 @@ cargo install prek
 ```sh
 # Clone the repository
 git clone https://github.com/nadmax/socle.git
-cd yaima
+cd socle
 
 # Install Git hooks
 just prek-install

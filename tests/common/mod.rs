@@ -8,7 +8,7 @@ use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
 use std::sync::atomic::Ordering;
 
-use yaima::{
+use socle::{
     config::{Config, OAuthConfig},
     routes,
     services::{auth::AuthService, oauth::StateStore, token::TokenService, user::UserService},

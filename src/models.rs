@@ -287,7 +287,7 @@ pub struct UserResponse {
 /// to `UserResponse::from` to produce the API response.
 ///
 /// ```rust
-/// # use yaima::models::{User, UserView, UserResponse, LocalCredential, Role};
+/// # use socle::models::{User, UserView, UserResponse, LocalCredential, Role};
 /// # use uuid::Uuid;
 /// # use time::OffsetDateTime;
 /// # let now = OffsetDateTime::now_utc();

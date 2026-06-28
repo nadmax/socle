@@ -1,4 +1,4 @@
-use yaima::{
+use socle::{
     config::OAuthProvider,
     errors::AppError,
     models::Role,
@@ -469,8 +469,8 @@ async fn list_oauth_connections_returns_linked_providers() {
     let provider_names: Vec<&str> = connections
         .iter()
         .map(|c| match c.provider {
-            yaima::models::Provider::Google => "google",
-            yaima::models::Provider::GitHub => "github",
+            socle::models::Provider::Google => "google",
+            socle::models::Provider::GitHub => "github",
         })
         .collect();
     assert!(provider_names.contains(&"google"));

@@ -90,7 +90,7 @@ impl OAuthConfig {
     /// # Examples
     ///
     /// ```
-    /// # use yaima::config::{OAuthConfig, OAuthProvider};
+    /// # use socle::config::{OAuthConfig, OAuthProvider};
     /// let cfg = OAuthConfig::default();
     /// assert!(cfg.provider(OAuthProvider::Google).is_none());
     /// ```
@@ -180,7 +180,7 @@ impl OAuthProvider {
     /// # Examples
     ///
     /// ```
-    /// # use yaima::config::OAuthProvider;
+    /// # use socle::config::OAuthProvider;
     /// assert_eq!(OAuthProvider::from_slug("github"), Some(OAuthProvider::GitHub));
     /// assert_eq!(OAuthProvider::from_slug("unknown"), None);
     /// ```

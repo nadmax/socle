@@ -1,5 +1,5 @@
 use axum::http::{HeaderMap, HeaderValue};
-use yaima::middleware::extract_bearer;
+use socle::middleware::extract_bearer;
 
 #[test]
 fn extracts_bearer_token_from_valid_header() {

@@ -5,7 +5,7 @@ facts that an agent would likely miss — not generic language advice.
 
 ## Project
 
-**YAIMA** — Yet Another Identity Management API. Axum + Tokio, PostgreSQL 18+
+**Socle** — Yet Another Identity Management API. Axum + Tokio, PostgreSQL 18+
 via SQLx (compile-time-checked, offline mode), Redis, JWT-based auth with
 refresh-token rotation, OAuth 2.0 (Google, GitHub), role-based access
 (Guest/User/Admin), OpenAPI spec + Swagger UI at `/apidocs`.

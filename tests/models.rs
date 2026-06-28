@@ -1,4 +1,4 @@
-use yaima::models::{MessageResponse, Role};
+use socle::models::{MessageResponse, Role};
 
 #[test]
 fn guest_satisfies_only_guest() {

@@ -1,4 +1,4 @@
-use yaima::{
+use socle::{
     errors::AppError,
     models::Role,
     services::{admin::AdminService, user::UserService},

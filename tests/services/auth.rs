@@ -1,4 +1,4 @@
-use yaima::{
+use socle::{
     config::OAuthProvider,
     errors::AppError,
     services::{auth::AuthService, oauth::OAuthProfile, token::TokenService, user::UserService},

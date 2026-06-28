@@ -1,5 +1,5 @@
 use axum::response::IntoResponse;
-use yaima::errors::AppError;
+use socle::errors::AppError;
 
 #[test]
 fn error_http_mapping_is_stable() {
