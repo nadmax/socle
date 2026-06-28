@@ -1,11 +1,11 @@
 # AGENTS.md
 
 Compact guidance for AI coding agents working in this repo. Only repo-specific
-facts that an agent would likely miss — not generic language advice.
+facts that an agent would likely miss: not generic language advice.
 
 ## Project
 
-**Socle** — Yet Another Identity Management API. Axum + Tokio, PostgreSQL 18+
+**Socle**: Yet Another Identity Management API. Axum + Tokio, PostgreSQL 18+
 via SQLx (compile-time-checked, offline mode), Redis, JWT-based auth with
 refresh-token rotation, OAuth 2.0 (Google, GitHub), role-based access
 (Guest/User/Admin), OpenAPI spec + Swagger UI at `/apidocs`.
@@ -22,7 +22,7 @@ just migrate               # apply migrations (server also auto-migrates on star
 just prepare               # regenerate .sqlx offline cache (includes --tests flag)
 ```
 
-**Valkey is always required** — the app creates a connection pool at startup even
+**Valkey is always required**: the app creates a connection pool at startup even
 without OAuth providers configured.
 
 ## Key commands
@@ -44,7 +44,7 @@ changes. CI uses `SQLX_OFFLINE: true` and requires an up-to-date cache.
 
 ```
 src/
-├── main.rs           # entrypoint — wires Router, starts server (auto-migrates DB)
+├── main.rs           # entrypoint, wires Router, starts server (auto-migrates DB)
 ├── lib.rs            # re-exports public surface; used by integration tests
 ├── config.rs         # typed env-based config via `envy`
 ├── state.rs          # AppState shared via Axum `with_state`
@@ -69,13 +69,13 @@ corresponding location.
 
 All errors are in `src/errors.rs`:
 
-- `AppError` (thiserror) — each variant maps to an HTTP status and a stable
+- `AppError` (thiserror): each variant maps to an HTTP status and a stable
   string code (e.g. `INVALID_CREDENTIALS`, `REFRESH_TOKEN_INVALID`). Handlers
   return `Result<_, AppError>` directly.
-- `OAuthError` — separate enum wrapped by `AppError::OAuth`; delegates its own
+- `OAuthError`: separate enum wrapped by `AppError::OAuth`; delegates its own
   status/code mapping.
-- **Don't change existing error codes** — clients depend on them.
-- **Don't add standalone error types** — extend these enums.
+- **Don't change existing error codes**: clients depend on them.
+- **Don't add standalone error types**: extend these enums.
 
 ## Testing
 
@@ -93,7 +93,7 @@ just test
 ## CI quirks
 
 CI runs `cargo fmt --check`, `cargo build`, `cargo test` (no `just` wrapper).
-It sets `SQLX_OFFLINE: true` and a dummy `JWT_SECRET: test` — no Docker, no
+It sets `SQLX_OFFLINE: true` and a dummy `JWT_SECRET: test`: no Docker, no
 database needed for compilation.
 
 ## OAuth
@@ -105,19 +105,20 @@ State is stored in Redis (PKCE + CSRF), consumed atomically, 10-minute TTL.
 
 ## Hard boundaries
 
-- Don't hand-edit `.sqlx/` files — run `just prepare`.
-- Don't add standalone error types — extend `AppError` / `OAuthError` in `errors.rs`.
+- Don't hand-edit `.sqlx/` files: run `just prepare`.
+- Don't add standalone error types: extend `AppError` / `OAuthError` in `errors.rs`.
 - Don't weaken role checks (`AuthUser`/`RequireUser`/`RequireAdmin` in middleware).
 - Don't change existing client-facing error codes.
 - Don't run `just migrate-fresh` on anything but a local dev DB.
-- Don't disable `clippy::pedantic` repo-wide — use `#[expect(...)]` on the site.
+- Don't disable `clippy::pedantic` repo-wide: use `#[expect(...)]` on the site.
 - Don't bypass prek hooks (`--no-verify`).
+- Don't use em dashes (`—`): use `:`, `,`, or a space based on sentence logic.
 
 ## Git conventions
 
 - **Branch:** `<type>/<description>` where type is `feat|fix|chore|docs|refactor|test`.
-- **Commits:** [Conventional Commits](https://www.conventionalcommits.org/) — always include a scope (e.g. `feat(auth):`, `fix(oauth):`).
-- **PR description:** Markdown, following `.github/PULL_REQUEST_TEMPLATE.md` — fill in
+- **Commits:** [Conventional Commits](https://www.conventionalcommits.org/), always include a scope (e.g. `feat(auth):`, `fix(oauth):`).
+- **PR description:** Markdown, following `.github/PULL_REQUEST_TEMPLATE.md`, fill in
   What, Why, Changes, Testing, and optionally Notes.
 
 Before PR:
