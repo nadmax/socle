@@ -1,15 +1,15 @@
 [package]
-name = "yaima"
+name = "socle"
 version = "0.1.0"
 edition = "2024"
 autotests = false
 
 [[bin]]
-name = "yaima"
+name = "socle"
 path = "src/main.rs"
 
 [lib]
-name = "yaima"
+name = "socle"
 path = "src/lib.rs"
 
 [dependencies]

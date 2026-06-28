@@ -1,11 +1,11 @@
-use sqlx::postgres::PgPoolOptions;
-use uuid::Uuid;
-use yaima::{
+use socle::{
     config::{Config, OAuthConfig},
     errors::AppError,
     models::{AuthMethod, Role},
     services::token::{TokenService, hash_password, hash_refresh_token, verify_password},
 };
+use sqlx::postgres::PgPoolOptions;
+use uuid::Uuid;
 
 use crate::common::{test_config, test_pool, unique_email, unique_username};
 
@@ -149,7 +149,7 @@ fn identical_tokens_produce_different_hashes() {
     );
 }
 
-use yaima::services::user::UserService;
+use socle::services::user::UserService;
 
 async fn create_user_for_token_tests() -> uuid::Uuid {
     let pool = test_pool().await;
@@ -167,7 +167,7 @@ async fn create_user_for_token_tests() -> uuid::Uuid {
     user.id
 }
 
-async fn db_svc() -> (TokenService, yaima::config::Config) {
+async fn db_svc() -> (TokenService, socle::config::Config) {
     let pool = test_pool().await;
     let config = test_config();
     (TokenService::new(pool, config.clone()), config)

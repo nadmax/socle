@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use yaima::{
+use socle::{
     config::Config,
     services::{auth::AuthService, oauth::StateStore, token::TokenService, user::UserService},
     state::AppState,

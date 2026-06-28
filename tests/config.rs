@@ -1,4 +1,4 @@
-use yaima::config::{OAuthConfig, OAuthProvider, OAuthProviderConfig};
+use socle::config::{OAuthConfig, OAuthProvider, OAuthProviderConfig};
 
 #[test]
 fn oauth_provider_from_slug_returns_some_for_known() {

@@ -1,15 +1,14 @@
-<h1 align="center">YAIMA</h1>
+<h1 align="center">Socle</h1>
 <p align="center">
-    <strong>Yet Another Identity Management API</strong><br/>
-    <em>Secure • Role-based • Written in Rust</em>
+    <em>Secure API • Role-based • Written in Rust</em>
 </p>
 
 <p align="center">
-    <a href="https://github.com/nadmax/yaima/actions">
-        <img alt="CI" src="https://img.shields.io/github/actions/workflow/status/nadmax/yaima/ci.yaml?label=CI&logo=github"/>
+    <a href="https://github.com/nadmax/socle/actions">
+        <img alt="CI" src="https://img.shields.io/github/actions/workflow/status/nadmax/socle/ci.yaml?label=CI&logo=github"/>
     </a>
     <a href="https://opensource.org/licenses/MIT">
-        <img alt="License" src="https://img.shields.io/github/license/nadmax/yaima"/>
+        <img alt="License" src="https://img.shields.io/github/license/nadmax/socle"/>
     </a>
 </p>
 
@@ -35,8 +34,8 @@ cargo install prek
 
 ```sh
 # Clone the repository
-git clone https://github.com/nadmax/yaima.git
-cd yaima
+git clone https://github.com/nadmax/socle.git
+cd socle
 
 # Install Git hooks
 just prek-install
@@ -63,4 +62,4 @@ Docs will be available at [http://localhost:8080/apidocs](http://localhost:8080/
 
 This project is licensed under the **MIT License**.
 
-See the [LICENSE](https://github.com/nadmax/yaima/blob/master/LICENSE) file for details.
+See the [LICENSE](https://github.com/nadmax/socle/blob/master/LICENSE) file for details.

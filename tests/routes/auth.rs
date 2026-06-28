@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use serde_json::json;
 
-use yaima::services::oauth::StateStore;
+use socle::services::oauth::StateStore;
 
 use crate::common::{register_user, test_config, test_server, unique_email, unique_username};
 
